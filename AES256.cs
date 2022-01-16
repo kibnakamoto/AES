@@ -87,16 +87,17 @@ namespace AES
              
             */
             // initialize arrays and the state matrix.
-            byte[] UsrArr = Encoding.ASCII.GetBytes(UserIn);
+            byte[] Input = new byte[16];
+            Input = Encoding.ASCII.GetBytes(UserIn);
             byte[,] state = new byte[4,4];
             byte[] output;
             byte[] W;
             
             // s-box
             byte[] Sbox = new byte[256] {
-                0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 
+                0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01,
                 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76, 0xca, 0x82, 0xc9, 0x7d,
-                0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 
+                0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4,
                 0x72, 0xc0, 0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc,
                 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15, 0x04, 0xc7,
                 0x23, 0xc3, 0x18, 0x96, 0x05, 0x9a, 0x07, 0x12, 0x80, 0xe2,
@@ -124,17 +125,23 @@ namespace AES
             // put 1 dimentional array values to a 2 dimentional matrix.
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++)
-                    state[r,c] = UsrArr[r + 4*c];
+                    state[c,r] = Input[c+4*r];
             }
-            System.Console.WriteLine(state);
-            if(UsrArr.Length != 128) {
-                // || W.Length != 480  || output.Length != 128  
+            for(int r=0;r<4;r++) {
+                for(int c=0;c<4;c++) {
+                    char ch = Convert.ToChar(state[c,r]);
+                    string d = ch.ToString();
+                    Console.WriteLine($"state: {d}\t\t\tindexes:\tc:{c}\tr:{r}");
+                }
+            }
+            if(Input.Length != 16) {
+                // || W.Length != 480  || output.Length != 128
                 // add when W and output is defined.
                 throw new ArgumentException("length doesn't match");
             }
             return null;
         }
-        public string Decrypt(string UserIn)
+        public string Decrypt(string UsecIn)
         {
             // invert s-box
             byte[] InvSBox = new byte[256] {
