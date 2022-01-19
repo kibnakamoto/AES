@@ -6,7 +6,7 @@ namespace AES
     // operations of aes256
     public class OPS_AES256
     {
-        // s-box
+        // s-box in 1 dimentional constant array.
         private static readonly byte[] Sbox = new byte[256] {
             0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01,
             0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76, 0xca, 0x82, 0xc9, 0x7d,
@@ -35,7 +35,7 @@ namespace AES
             0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99,
             0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16};
         
-        // invert s-box
+        // invert s-box in 1 dimentional constant array
         private static readonly byte[] InvSBox = new byte[256] {
             0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 
             0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb, 0x7c, 0xe3, 0x39, 0x82,
@@ -63,29 +63,27 @@ namespace AES
             0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61,
             0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69,
             0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d};
-
-        public uint SubWord(uint x)
+        
+        // Galois Field Multipication 2^8
+        public byte GF8(byte x, byte y)
+        {
+            // implemented with bitmasking
+            byte p=0;
+            for (int c=0;c<8;c++) {
+                p ^= (byte)(-(y&1)&x);
+                x = (byte)((x<<1) ^ (0x11b & -((x>>7)&1)));
+                y >>= 1;
+            }
+            return p;
+        }
+        
+        public byte SubWord(byte x)
         {
             
             return 0;
         }
         
-        public uint InvShiftRows(uint x)
-        {
-            return 0;
-        }
-        
-        public uint InvSubBytes(uint x)
-        {
-            return 0;
-        }
-        
-        public uint InvMixColumns(uint x)
-        {
-            return 0;
-        }
-        
-        public uint MixColumns(uint x)
+        public byte MixColumns(byte x)
         {
             return 0;
         }
@@ -98,12 +96,12 @@ namespace AES
             return 0;
         }
         
-        public uint ShiftRows(uint x)
+        public byte ShiftRows(byte x)
         {
             return 0;
         }
 
-        public uint AddRoundKey(byte[] state)
+        public byte AddRoundKey(byte[] state)
         {
             for(int c=0;c<4;c++) {
                 
@@ -113,13 +111,29 @@ namespace AES
             
             return 0;
         }
+        
+        public byte InvShiftRows(byte x)
+        {
+            return 0;
+        }
+        
+        public byte InvSubBytes(byte x)
+        {
+            return 0;
+        }
+        
+        public byte InvMixColumns(byte x)
+        {
+            return 0;
+        }
+
     }
     
     public class AES256
     {
         public string Encrypt(string UserIn)
         {
-            OPS_AES256 Oper = new OPS_AES256();
+            OPS_AES256 Operation = new OPS_AES256();
             /* put things from sec 2.2 from FIPS 197 AES
             (byte in[4*Nb], byte out[4*Nb], word w[Nb*(Nr+1)])
             
@@ -156,11 +170,10 @@ namespace AES
             */
             // initialize arrays and the state matrix.
             byte[] Input = new byte[16];
-            Input = Encoding.ASCII.GetBytes(UserIn);
+            Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             byte[,] state = new byte[4,4];
             byte[] output = new byte[16];
-            byte[] W;
-            
+
             // put 1 dimentional array values to a 2 dimentional matrix.
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++)
@@ -172,15 +185,15 @@ namespace AES
                 for(int c=0;c<4;c++)
                     output[c+4*r] = state[r,c];
             }
-            System.Console.WriteLine(0x57 * 0x83);
+
             // for testing values
-            // for(int r=0;r<4;r++) {
-            //     for(int c=0;c<4;c++) {
-            //         char ch = Convert.ToChar(state[c,r]);
-            //         string d = ch.ToString();
-            //         Console.WriteLine($"state: {d}\t\t\tindexes:\tc:{c}\tr:{r}");
-            //     }
-            // }
+            for(int r=0;r<4;r++) {
+                for(int c=0;c<4;c++) {
+                    char ch = Convert.ToChar(state[c,r]);
+                    string d = ch.ToString();
+                    // Console.Write($"\nstate: {d}\t\t\tindexes:\tc:{c}\tr:{r}");
+                }
+            }
             
             if(Input.Length != 16) {
                 // || W.Length != 480  || output.Length != 128
