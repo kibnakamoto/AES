@@ -90,51 +90,11 @@ namespace AES
         {
             /* seperates hex byte into 2 4 bits and use them as index to
                sub in values as index of s-box */
-            // test when state[1,1] = ox53 if it = to 0xED
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++) {
-                    byte stateIn = b[r,c];
-                    string hexValue = stateIn.ToString("x");
-                    stateIn = Sbox[(byte)hexValue[0], (byte)hexValue[1]];
-                    System.Console.WriteLine(hexValue[0]);
-                    /* (this is for 1 dimentional array so count by multiples of 4)
-                    decimal values:
-                    1. 97
-                    2. 115
-                    3. 100
-                    4. 102
-                    5. 103
-                    6. 104
-                    7. 106
-                    8. 107
-                    9. 108
-                    10. 113
-                    11. 119
-                    12. 101
-                    13. 114
-                    14. 116
-                    15. 121
-                    16. 117
-                    
-                    hexadecimal values:
-                    1. 61
-                    2. 73
-                    3. 64
-                    4. 66
-                    5. 67
-                    6. 68
-                    7. 6a
-                    8. 6b
-                    9. 6c
-                    10. 71
-                    11. 77
-                    12. 65
-                    13. 72
-                    14. 74
-                    15. 79
-                    16. 75
-                    */
-                    b[r,c] = stateIn;
+                    var low = b[r,c] & 0x0F;
+                    var high = b[r,c]>>4;
+                    b[r,c] = Sbox[high, low];
                 }
             }
             return b;
@@ -228,10 +188,45 @@ namespace AES
                     output[r+4*c] = state[r,c];
             }
             
-            // for testing SubBytes function
-            state[1,1] = 0x53;
+            /*
+            for aes256 implementation tests
             
-            Operation.SubBytes(state);
+            decimal values:
+            1. 97
+            2. 115
+            3. 100
+            4. 102
+            5. 103
+            6. 104
+            7. 106
+            8. 107
+            9. 108
+            10. 113
+            11. 119
+            12. 101
+            13. 114
+            14. 116
+            15. 121
+            16. 117
+            
+            hexadecimal values:
+            1. 61
+            2. 73
+            3. 64
+            4. 66
+            5. 67
+            6. 68
+            7. 6a
+            8. 6b
+            9. 6c
+            10. 71
+            11. 77
+            12. 65
+            13. 72
+            14. 74
+            15. 79
+            16. 75
+            */
             
             // for testing values
             for(int r=0;r<4;r++) {
