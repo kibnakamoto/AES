@@ -6,7 +6,7 @@ namespace AES
     // operations of aes256
     public class OPS_AES256
     {
-        // s-box as a 2-dimentional 16x16 matrix
+        // Rijndael's S-box as a 2-dimentional 16x16 matrix
         private static readonly byte[,] Sbox = new byte[16,16] {
             {0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 
             0x2B, 0xFE, 0xD7, 0xAB, 0x76}, {0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59,
@@ -33,7 +33,7 @@ namespace AES
             0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 
             0x54, 0xBB, 0x16}};
         
-        // invert s-box in 1 dimentional constant array
+        // Rijndael's invert S-box in 1 dimentional array
         private static readonly byte[] InvSBox = new byte[256] {
             0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 
             0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb, 0x7c, 0xe3, 0x39, 0x82,
@@ -92,17 +92,22 @@ namespace AES
                sub in values as index of s-box */
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++) {
-                    var low = b[r,c] & 0x0F;
-                    var high = b[r,c]>>4;
+                    byte low = (byte)(b[r,c] & 0x0F);
+                    byte high = (byte)(b[r,c]>>4);
                     b[r,c] = Sbox[high, low];
                 }
             }
             return b;
         }
         
-        public byte ShiftRows(byte x)
+        public byte[,] ShiftRows(byte[,] S)
         {
-            return 0;
+            for(int r=0;r<4;r++) {
+                for(int c=0;c<4;c++) {
+                    S[r,c] = S[r, (c+r)%4];
+                }
+            }
+            return S;
         }
 
         public byte AddRoundKey(byte[] state)
@@ -136,40 +141,7 @@ namespace AES
         public string Encrypt(string UserIn)
         {
             OPS_AES256 Operation = new OPS_AES256();
-            /* put things from sec 2.2 from FIPS 197 AES
-            (byte in[4*Nb], byte out[4*Nb], word w[Nb*(Nr+1)])
-            
-            begin
-            
-            byte state[4,Nb]
-            
-            state = in
-            
-            AddRoundKey(state, w[Nr*Nb, (Nr+1)*Nb-1]) // See Sec. 5.1.4
-            
-            for round = Nr-1 step -1 downto 1
-            
-            InvShiftRows(state) // See Sec. 5.3.1
-            
-            InvSubBytes(state) // See Sec. 5.3.2
-            
-            AddRoundKey(state, w[round*Nb, (round+1)*Nb-1])
-            
-            InvMixColumns(state) // See Sec. 5.3.3
-            
-            end for
-            
-            InvShiftRows(state)
-            
-            InvSubBytes(state)
-            
-            AddRoundKey(state, w[0, Nb-1])
-            
-            out = state
-            
-            end
-             
-            */
+
             // initialize arrays and the state matrix.
             byte[] Input = new byte[16];
             Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
@@ -181,6 +153,20 @@ namespace AES
                 for(int c=0;c<4;c++)
                     state[r,c] = Input[r+4*c];
             }
+
+            /* ======= test before function ======= */
+            // for testing values
+            for(int r=0;r<4;r++) {
+                for(int c=0;c<4;c++) {
+                    char ch = Convert.ToChar(state[c,r]);
+                    string d = ch.ToString();
+                    Console.Write($"\nstate: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
+                }
+            }
+            
+            Console.WriteLine();
+            
+            Operation.ShiftRows(state);
             
             // copy state array to output
             for(int r=0;r<4;r++) {
@@ -233,13 +219,12 @@ namespace AES
                 for(int c=0;c<4;c++) {
                     char ch = Convert.ToChar(state[c,r]);
                     string d = ch.ToString();
-                    // Console.Write($"\nstate: {d}\t\t\tindexes:\tc:{c}\tr:{r}");
+                    Console.Write($"\nstate: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
                 }
             }
             
             if(Input.Length != 16) {
-                // || W.Length != 480  || output.Length != 128
-                // add when W and output is defined.
+                // || W.Length != 120  || output.Length != 17
                 throw new ArgumentException("length doesn't match");
             }
             return null;
