@@ -110,18 +110,18 @@ namespace AES
             return S;
         }
 
-        public byte AddRoundKey(byte[] state)
+        public byte[,] AddRoundKey(byte[,] state)
         {
             for(int c=0;c<4;c++) {
                 
             }
             
-            return 0;
+            return state;
         }
         
-        public byte InvShiftRows(byte x)
+        public byte[,] InvShiftRows(byte[,] S)
         {
-            return 0;
+            return S;
         }
         
         public byte InvSubBytes(byte x)
@@ -158,7 +158,7 @@ namespace AES
             // for testing values
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++) {
-                    char ch = Convert.ToChar(state[c,r]);
+                    char ch = Convert.ToChar(state[r,c]);
                     string d = ch.ToString();
                     Console.Write($"\nstate: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
                 }
@@ -217,7 +217,7 @@ namespace AES
             // for testing values
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++) {
-                    char ch = Convert.ToChar(state[c,r]);
+                    char ch = Convert.ToChar(state[r,c]);
                     string d = ch.ToString();
                     Console.Write($"\nstate: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
                 }
@@ -227,6 +227,7 @@ namespace AES
                 // || W.Length != 120  || output.Length != 17
                 throw new ArgumentException("length doesn't match");
             }
+            
             return null;
         }
         public string Decrypt(string UserIn)
