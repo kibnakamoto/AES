@@ -5,8 +5,8 @@ namespace AES
 {
     // operations of aes256
     public class OPS_AES256
-    {        
-        // Rijndael's S-box as a 2-dimentional 16x16 matrix
+    {
+        // Rijndael's S-box as a 2-dimentional matrix
         private static readonly byte[,] Sbox = new byte[16,16] {
             {0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 
             0x2B, 0xFE, 0xD7, 0xAB, 0x76}, {0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59,
@@ -33,7 +33,7 @@ namespace AES
             0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 
             0x54, 0xBB, 0x16}};
         
-        // Rijndael's invert S-box in 1 dimentional array
+        // Rijndael's inverse S-box as a 2-dimentional matrix
         private static readonly byte[,] InvSBox = new byte[16,16] {
             {0x52, 0x9, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3,
             0x9e, 0x81, 0xf3, 0xd7, 0xfb}, {0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f,
@@ -61,7 +61,7 @@ namespace AES
             0xc, 0x7d}};
         
         // Galois Field Multipication 2^8
-        public byte GF8(byte x, byte y)
+        public byte GF256(byte x, byte y)
         {
             // implemented with bitmasking for efficient cryptographical use.
             byte p=0;
@@ -89,7 +89,6 @@ namespace AES
         
         public byte[,] ShiftRows(byte[,] S)
         {
-            int shift;
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++) {
                     S[r,c] = S[r, (c+r)%4];
