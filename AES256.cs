@@ -1,3 +1,11 @@
+/*
+*  Author: Taha Canturk
+*   Github: Kibnakamoto
+*    Repisotory: AES256
+*     Start Date: Jan 7, 2022
+*       Finalized: N/A
+*/
+
 using System;
 using System.Text;
 
@@ -59,6 +67,8 @@ namespace AES
             0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61}, {0x17, 0x2b, 0x4,
             0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21,
             0xc, 0x7d}};
+        
+        // TODO: define Rcon array
         
         // Galois Field Multipication 2^8
         public byte GF256(byte x, byte y)
