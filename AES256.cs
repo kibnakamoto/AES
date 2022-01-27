@@ -2,8 +2,9 @@
 *  Author: Taha Canturk
 *   Github: Kibnakamoto
 *    Repisotory: AES256
-*     Start Date: Jan 7, 2022
-*       Finalized: N/A
+*      License: GPL 3.0
+*       Start Date: Jan 7, 2022
+*        Finalized: N/A
 */
 
 using System;
