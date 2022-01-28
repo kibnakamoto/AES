@@ -2,9 +2,8 @@
 *  Author: Taha Canturk
 *   Github: Kibnakamoto
 *    Repisotory: AES256
-*      License: GPL 3.0
-*       Start Date: Jan 7, 2022
-*        Finalized: N/A
+*     Start Date: Jan 7, 2022
+*       Finalized: N/A
 */
 
 using System;
@@ -100,17 +99,36 @@ namespace AES
         
         public byte[,] ShiftRows(byte[,] S)
         {
+            // TODO: fix ShiftRows transformation
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++) {
-                    S[r,c] = S[r, (c+r)%4];
+                    if (r+c != 0) {
+                        S[r,c] = S[r, (r+c)%4];
+                    }
                 }
             }
+            /*
+            details: 
+            first row isn't changed.
+            S[1,0] = S[1,1]
+            */
             return S;
         }
         
-        public byte MixColumns(byte x)
+        public byte[,] MixColumns(byte[,] S)
         {
-            return 0;
+            for (int c=0;c<4;c++) {
+                }
+                S[0,c] = (byte)(GF256(0x02,S[0,c]) ^ GF256(0x03,S[1,c]) ^
+                                S[2,c] ^ S[3,c]);
+                S[1,c] = (byte)(S[0,c] ^ GF256(0x02, S[1,c]) ^
+                                GF256(0x03,S[2,c]) ^ S[3,c]);
+                S[2,c] = (byte)(S[0,c] ^ S[1,c] ^ GF256(0x02, S[2,c] ^
+                                GF256(0x03, S[3,c];
+                S[3,c] = (byte)(GF256(0x03,S[0,c]) ^ S[1,c]) ^ S[2,c] ^
+                                GF256(0x02, S[3,c]);
+            }
+            return S;
         }
         
         public byte SubWord(byte x)
@@ -145,9 +163,29 @@ namespace AES
             return S;
         }
         
-        public byte InvMixColumns(byte x)
+        public byte[,] InvMixColumns(byte[,] S)
         {
-            return 0;
+            byte[] SMixArr = new byte[4] {0x0e, 0x0b, 0x0d, 0x09};
+            for (int c=0;c<4;c++) {
+                // TODO: Make it efficient once code is working
+                S[0,c] = (byte)(GF256(SMixArr[0], S[0,c]) ^
+                                GF256(SMixArr[1], S[1,c]) ^
+                                GF256(SMixArr[2], S[2,c]) ^
+                                GF256(SMixArr[3], S[3,c]));
+                S[1,c] = (byte)(GF256(SMixArr[3], S[0,c]) ^
+                                GF256(SMixArr[0], S[1,c]) ^
+                                GF256(SMixArr[1], S[2,c]) ^
+                                GF256(SMixArr[2], S[3,c]));
+                S[2,c] = (byte)(GF256(SMixArr[2], S[0,c]) ^
+                                GF256(SMixArr[3], S[1,c]) ^
+                                GF256(SMixArr[0], S[2,c]) ^
+                                GF256(SMixArr[1], S[3,c]));
+                S[3,c] = (byte)(GF256(SMixArr[1], S[0,c]) ^
+                                GF256(SMixArr[2], S[1,c]) ^ 
+                                GF256(SMixArr[3], S[2,c]) ^
+                                GF256(SMixArr[0], S[3,c]));
+            }
+            return S;
         }
 
     }
@@ -160,11 +198,20 @@ namespace AES
 
             // initialize arrays and the state matrix.
             byte[] Input = new byte[16];
-            Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             byte[,] state = new byte[4,4];
             byte[] output = new byte[16];
 
-            // put 1 dimentional array values to a 2 dimentional matrix.
+            // pad the Input array to have a length of 16.
+            // ulong len = (ulong)UserIn.Length;
+            // byte padding = (byte)((16-len)%16);
+            // for (int c=16-padding;c<16;c++) {
+            //     Input[c] = 0x00;
+            // }
+            
+            // append user input to single-dimentional array
+            Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
+            
+            // put 1-dimentional array values to a 2-dimentional matrix.
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++)
                     state[r,c] = Input[r+4*c];
@@ -189,46 +236,6 @@ namespace AES
                 for(int c=0;c<4;c++)
                     output[r+4*c] = state[r,c];
             }
-            
-            /*
-            for aes256 implementation tests
-            
-            decimal values:
-            1. 97
-            2. 115
-            3. 100
-            4. 102
-            5. 103
-            6. 104
-            7. 106
-            8. 107
-            9. 108
-            10. 113
-            11. 119
-            12. 101
-            13. 114
-            14. 116
-            15. 121
-            16. 117
-            
-            hexadecimal values:
-            1. 61
-            2. 73
-            3. 64
-            4. 66
-            5. 67
-            6. 68
-            7. 6a
-            8. 6b
-            9. 6c
-            10. 71
-            11. 77
-            12. 65
-            13. 72
-            14. 74
-            15. 79
-            16. 75
-            */
             
             // for testing values
             for(int r=0;r<4;r++) {
