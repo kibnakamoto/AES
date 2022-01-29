@@ -115,7 +115,7 @@ namespace AES
         
         public byte[,] MixColumns(byte[,] S)
         {
-            for (int c=0;c<4;c++) {
+            for(int c=0;c<4;c++) {
                 S[0,c] = (byte)(GF256(0x02,S[0,c]) ^ GF256(0x03,S[1,c]) ^
                                 S[2,c] ^ S[3,c]);
                 S[1,c] = (byte)(S[0,c] ^ GF256(0x02, S[1,c]) ^
@@ -163,7 +163,7 @@ namespace AES
         public byte[,] InvMixColumns(byte[,] S)
         {
             byte[] SMixArr = new byte[4] {0x0e, 0x0b, 0x0d, 0x09};
-            for (int c=0;c<4;c++) {
+            for(int c=0;c<4;c++) {
                 // TODO: Make it efficient once code is working
                 S[0,c] = (byte)(GF256(SMixArr[0], S[0,c]) ^
                                 GF256(SMixArr[1], S[1,c]) ^
@@ -198,16 +198,16 @@ namespace AES
         public string Encrypt(string UserIn)
         {
             OPS_AES256 Operation = new OPS_AES256();
-
+            ulong msgLen = (ulong)(UserIn.Length+((16-UserIn.Length)%16));
             // initialize arrays and the state matrix.
             byte[] Input = new byte[16];
             byte[,] state = new byte[4,4];
-            byte[,] Sp = new byte[4,4];
-            byte[] output = new byte[16];
+            byte[] output = new byte[msgLen];
+            
             // pad the Input array to have a length of 16.
             // ulong len = (ulong)UserIn.Length;
             // byte padding = (byte)((16-len)%16);
-            // for (int c=16-padding;c<16;c++) {
+            // for(int c=16-padding;c<16;c++) {
             //     Input[c] = 0x00;
             // }
             
@@ -218,17 +218,15 @@ namespace AES
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++) {
                     state[r,c] = Input[r+4*c];
-                    Sp[r,c] = Input[r+4*c];
                 }
             }
 
             /* ======= test before function ======= */
-            // for testing values
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++) {
                     char ch = Convert.ToChar(state[r,c]);
                     string d = ch.ToString();
-                    Console.Write($"\npre state: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
+                    Console.Write($"\npre-state: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
                 }
                 Console.WriteLine();
             }
@@ -250,17 +248,18 @@ namespace AES
                 for(int c=0;c<4;c++)
                     output[r+4*c] = state[r,c];
             }
-            string out_str;
-            for (int c=0;c<16;c++) {
-                out_str = output[c];
-            }
             
             if(Input.Length != 16) {
                 // || W.Length != 120  || output.Length != 17
                 throw new ArgumentException("length doesn't match");
             }
             
-            return out_str;
+            // output
+            string[] EncData = new string[msgLen];
+            for (ulong c=0;c<msgLen;c++) {
+                EncData[c] = string.Join("",output[c].ToString("x"));
+            }
+            return string.Join("", EncData);
         }
         
         protected byte[,] InvCipher()
