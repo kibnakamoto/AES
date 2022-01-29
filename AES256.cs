@@ -99,34 +99,31 @@ namespace AES
         
         public byte[,] ShiftRows(byte[,] S)
         {
-            // TODO: fix ShiftRows transformation
+            // to stop values from overriding, use 2 arrays with the same values
+            byte[,] Spre = new byte[4,4];
             for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++) {
-                    if (r+c != 0) {
-                        S[r,c] = S[r, (r+c)%4];
-                    }
-                }
+                for(int c=0;c<4;c++)
+                    Spre[r,c] = S[r,c];
             }
-            /*
-            details: 
-            first row isn't changed.
-            S[1,0] = S[1,1]
-            */
+            
+            for(int r=1;r<4;r++) {
+                for(int c=0;c<4;c++)
+                    S[r,c] = Spre[r, (r+c)%4];
+            }
             return S;
         }
         
         public byte[,] MixColumns(byte[,] S)
         {
             for (int c=0;c<4;c++) {
-                }
                 S[0,c] = (byte)(GF256(0x02,S[0,c]) ^ GF256(0x03,S[1,c]) ^
                                 S[2,c] ^ S[3,c]);
                 S[1,c] = (byte)(S[0,c] ^ GF256(0x02, S[1,c]) ^
                                 GF256(0x03,S[2,c]) ^ S[3,c]);
-                S[2,c] = (byte)(S[0,c] ^ S[1,c] ^ GF256(0x02, S[2,c] ^
-                                GF256(0x03, S[3,c];
-                S[3,c] = (byte)(GF256(0x03,S[0,c]) ^ S[1,c]) ^ S[2,c] ^
-                                GF256(0x02, S[3,c]);
+                S[2,c] = (byte)(S[0,c] ^ S[1,c] ^ GF256(0x02, S[2,c]) ^
+                                GF256(0x03, S[3,c]));
+                S[3,c] = (byte)(GF256(0x03,S[0,c]) ^ S[1,c] ^ S[2,c] ^
+                                GF256(0x02, S[3,c]));
             }
             return S;
         }
@@ -192,6 +189,12 @@ namespace AES
     
     public class AES256
     {
+        // create cipher
+        protected byte[,] Cipher()
+        {
+            return null;
+        }
+        
         public string Encrypt(string UserIn)
         {
             OPS_AES256 Operation = new OPS_AES256();
@@ -199,8 +202,8 @@ namespace AES
             // initialize arrays and the state matrix.
             byte[] Input = new byte[16];
             byte[,] state = new byte[4,4];
+            byte[,] Sp = new byte[4,4];
             byte[] output = new byte[16];
-
             // pad the Input array to have a length of 16.
             // ulong len = (ulong)UserIn.Length;
             // byte padding = (byte)((16-len)%16);
@@ -213,8 +216,10 @@ namespace AES
             
             // put 1-dimentional array values to a 2-dimentional matrix.
             for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++)
+                for(int c=0;c<4;c++) {
                     state[r,c] = Input[r+4*c];
+                    Sp[r,c] = Input[r+4*c];
+                }
             }
 
             /* ======= test before function ======= */
@@ -223,19 +228,12 @@ namespace AES
                 for(int c=0;c<4;c++) {
                     char ch = Convert.ToChar(state[r,c]);
                     string d = ch.ToString();
-                    Console.Write($"\nstate: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
+                    Console.Write($"\npre state: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
                 }
+                Console.WriteLine();
             }
-            
-            Console.WriteLine();
             
             Operation.ShiftRows(state);
-            
-            // copy state array to output
-            for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++)
-                    output[r+4*c] = state[r,c];
-            }
             
             // for testing values
             for(int r=0;r<4;r++) {
@@ -244,6 +242,17 @@ namespace AES
                     string d = ch.ToString();
                     Console.Write($"\nstate: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
                 }
+                Console.WriteLine();
+            }
+            
+            // copy state array to output
+            for(int r=0;r<4;r++) {
+                for(int c=0;c<4;c++)
+                    output[r+4*c] = state[r,c];
+            }
+            string out_str;
+            for (int c=0;c<16;c++) {
+                out_str = output[c];
             }
             
             if(Input.Length != 16) {
@@ -251,8 +260,14 @@ namespace AES
                 throw new ArgumentException("length doesn't match");
             }
             
+            return out_str;
+        }
+        
+        protected byte[,] InvCipher()
+        {
             return null;
         }
+        
         public string Decrypt(string UserIn)
         {
             return null;
