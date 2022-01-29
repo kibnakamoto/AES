@@ -106,6 +106,7 @@ namespace AES
                     Spre[r,c] = S[r,c];
             }
             
+            // shifting rows. First row is not changed
             for(int r=1;r<4;r++) {
                 for(int c=0;c<4;c++)
                     S[r,c] = Spre[r, (r+c)%4];
@@ -254,12 +255,13 @@ namespace AES
                 throw new ArgumentException("length doesn't match");
             }
             
-            // output
-            string[] EncData = new string[msgLen];
-            for (ulong c=0;c<msgLen;c++) {
-                EncData[c] = string.Join("",output[c].ToString("x"));
+            // convert output array to hex string
+            StringBuilder hex = new StringBuilder(output.Length * 2);
+            foreach (byte c in output)
+            {
+                   hex.AppendFormat("{0:x2}", c);
             }
-            return string.Join("", EncData);
+            return hex.ToString();
         }
         
         protected byte[,] InvCipher()
