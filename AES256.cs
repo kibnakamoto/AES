@@ -68,8 +68,6 @@ namespace AES
             0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21,
             0xc, 0x7d}};
         
-        // TODO: define Rcon array
-        
         // Galois Field Multipication 2^8
         public byte GF256(byte x, byte y)
         {
@@ -114,8 +112,6 @@ namespace AES
                 }
             }
             
-            // test if implementation is correct
-            
             return S;
         }
         
@@ -140,14 +136,16 @@ namespace AES
             return 0;
         }
         
-        public byte[,] AddRoundKey(byte[,] state)
+        public byte[,] AddRoundKey(byte[,] state, byte[] W, int round)
         {
-            for(int c=0;c<4;c++) {
-                
+            for(int r=0;r<4;r++) {
+                for(int c=0;c<4;c++)
+                    state[r,c] ^= W[round*4+c];
             }
-            
             return state;
         }
+        
+        /* DECRYPTION */
         
         public byte[,] InvSubBytes(byte[,] b)
         {
@@ -163,7 +161,21 @@ namespace AES
         
         public byte[,] InvShiftRows(byte[,] S)
         {
-            return S;
+            // TODO: fix
+            // to stop values from overriding, use 2 arrays with the same values
+            byte[,] InvSpre = new byte[4,4];
+            for(int r=1;r<4;r++) {
+                for(int c=0;c<4;c++)
+                    InvSpre[r,c] = S[r,c];
+            }
+            
+            // shifting rows. First row is not changed
+            for(int r=1;r<4;r++) {
+                for(int c=0;c<4;c++) {
+                    InvSpre[r, (c+r)%4] = S[r,c];
+                }
+            }
+            return InvSpre;
         }
         
         public byte[,] InvMixColumns(byte[,] S)
@@ -194,8 +206,8 @@ namespace AES
     
     public class AES256
     {
-        // create cipher
-        protected byte[,] Cipher()
+        // create KeyExpansion
+        protected byte[,] KeyExpansion()
         {
             return null;
         }
@@ -206,15 +218,8 @@ namespace AES
             ulong msgLen = (ulong)(UserIn.Length+((16-UserIn.Length)%16));
             // initialize arrays and the state matrix.
             byte[] Input = new byte[16];
-            byte[,] state = new byte[4,4];
+            byte[,] state = new byte[4,4] {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
             byte[] output = new byte[msgLen];
-            
-            // pad the Input array to have a length of 16.
-            // ulong len = (ulong)UserIn.Length;
-            // byte padding = (byte)((16-len)%16);
-            // for(int c=16-padding;c<16;c++) {
-            //     Input[c] = 0x00;
-            // }
             
             // append user input to single-dimentional array
             Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
@@ -225,7 +230,7 @@ namespace AES
                     state[r,c] = Input[r+4*c];
                 }
             }
-
+            
             /* ======= test before function ======= */
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++) {
@@ -236,7 +241,7 @@ namespace AES
                 Console.WriteLine();
             }
             
-            Operation.ShiftRows(state);
+            Operation.InvShiftRows(state);
             
             // for testing values
             for(int r=0;r<4;r++) {
@@ -268,7 +273,7 @@ namespace AES
             return hex.ToString();
         }
         
-        protected byte[,] InvCipher()
+        protected byte[,] InvKeyExpansion()
         {
             return null;
         }
