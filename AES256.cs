@@ -101,16 +101,21 @@ namespace AES
         {
             // to stop values from overriding, use 2 arrays with the same values
             byte[,] Spre = new byte[4,4];
-            for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++)
+            for(int r=1;r<4;r++) {
+                for(int c=0;c<4;c++){
                     Spre[r,c] = S[r,c];
+                }
             }
             
             // shifting rows. First row is not changed
             for(int r=1;r<4;r++) {
-                for(int c=0;c<4;c++)
+                for(int c=0;c<4;c++) {
                     S[r,c] = Spre[r, (r+c)%4];
+                }
             }
+            
+            // test if implementation is correct
+            
             return S;
         }
         
@@ -165,7 +170,6 @@ namespace AES
         {
             byte[] SMixArr = new byte[4] {0x0e, 0x0b, 0x0d, 0x09};
             for(int c=0;c<4;c++) {
-                // TODO: Make it efficient once code is working
                 S[0,c] = (byte)(GF256(SMixArr[0], S[0,c]) ^
                                 GF256(SMixArr[1], S[1,c]) ^
                                 GF256(SMixArr[2], S[2,c]) ^
@@ -256,8 +260,8 @@ namespace AES
             }
             
             // convert output array to hex string
-            StringBuilder hex = new StringBuilder(output.Length * 2);
-            foreach (byte c in output)
+            StringBuilder hex = new StringBuilder(output.Length<<1);
+            foreach(byte c in output)
             {
                    hex.AppendFormat("{0:x2}", c);
             }
