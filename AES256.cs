@@ -220,7 +220,7 @@ namespace AES
     public class AES256
     {
         // KeyExpansion
-        protected byte[,] KeyExpansion(byte[] key, uint[] w, byte Nk)
+        protected uint[] KeyExpansion(byte[] key, uint[] w, byte Nk)
         {
             OPS_AES256 Operation = new OPS_AES256();
             byte Nb = 4;
@@ -236,8 +236,8 @@ namespace AES
             while (i<Nb*(Nr+1)) {
                 temp = w[i-1];
                 if(i % Nk == 0) {
-                    temp = Operation.SubWord(Operation.RotWord(temp) ^
-                                                    Operation.Rcon[i/Nk]);
+                    temp = Operation.SubWord(Operation.RotWord((int)temp) ^
+                                             OPS_AES256.Rcon[i/Nk]);
                 }
                 else if(Nk>6 || i%Nk == 4) {
                     temp = Operation.SubWord(temp);
@@ -245,7 +245,7 @@ namespace AES
                 w[i] = w[i-Nk] ^ temp;
                 i++;
             }
-            return null;
+            return w;
         }
         
         public string Encrypt(string UserIn)
