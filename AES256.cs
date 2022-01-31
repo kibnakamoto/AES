@@ -143,16 +143,16 @@ namespace AES
             return S;
         }
         
-        public uint SubWord(uint x)
+        public int SubWord(int x)
         {
             
             return 0;
         }
         
-        public byte[,] AddRoundKey(byte[,] state, byte[] W, int NRround)
+        public byte[,] AddRoundKey(byte[,] state, uint[] W, int NRround)
         {
             for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++)
+                for(int c=0;c<4;c++) // TODO: fix W. array or uint
                     state[r,c] ^= W[NRround*4+c];
             }
             return state;
@@ -220,57 +220,102 @@ namespace AES
     public class AES256
     {
         // KeyExpansion
-        protected uint[] KeyExpansion(byte[] key, uint[] w, byte Nk)
+        // protected uint[] KeyExpansion(byte[] key, uint[] w, byte Nk)
+        // {
+        //     OPS_AES256 Operation = new OPS_AES256();
+        //     byte Nb = 4;
+        //     byte Nr = 14;
+        //     uint temp;
+        //     int i=0;
+        //     do {
+        //         w[i] = (uint)((key[4*i]<<24) | (key[4*i+1]<<16) |
+        //                       (key[4*i+2]<<8) | key[4*i+3]);
+        //         i++;
+        //     } while(i < Nk);
+        //     i=Nk;
+        //     while (i<Nb*(Nr+1)) {
+        //         temp = w[i-1];
+        //         if(i % Nk == 0) {
+        //             temp = Operation.SubWord(Operation.RotWord((int)temp) ^
+        //                                      OPS_AES256.Rcon[i/Nk]);
+        //         }
+        //         else if(Nk>6 || i%Nk == 4) {
+        //             temp = Operation.SubWord(temp);
+        //         }
+        //         w[i] = w[i-Nk] ^ temp;
+        //         i++;
+        //     }
+        //     return w;
+        // }
+        
+        protected byte[] Cipher(byte[] Input, byte[] output, uint[] w, 
+                                byte Nb, byte Nr)
         {
             OPS_AES256 Operation = new OPS_AES256();
-            byte Nb = 4;
-            byte Nr = 14;
-            uint temp;
-            int i=0;
-            do {
-                w[i] = (uint)((key[4*i]<<24) | (key[4*i+1]<<16) |
-                              (key[4*i+2]<<8) | key[4*i+3]);
-                i++;
-            } while(i < Nk);
-            i=Nk;
-            while (i<Nb*(Nr+1)) {
-                temp = w[i-1];
-                if(i % Nk == 0) {
-                    temp = Operation.SubWord(Operation.RotWord((int)temp) ^
-                                             OPS_AES256.Rcon[i/Nk]);
+
+            // initialize matrix to manipulate
+            byte[,] state = new byte[4, Nb];
+            
+            // put 1-dimentional array values to a 2-dimentional matrix
+            for(int r=0;r<4;r++) {
+                for(int c=0;c<Nb;c++) {
+                    state[r,c] = Input[r+4*c];
                 }
-                else if(Nk>6 || i%Nk == 4) {
-                    temp = Operation.SubWord(temp);
-                }
-                w[i] = w[i-Nk] ^ temp;
-                i++;
             }
-            return w;
+            
+            // call functions to manipulate state matrix
+            Operation.AddRoundKey(state, w[0], Nb-1);
+            for(int round=1;round<Nr-1;round++) {
+                Operation.SubBytes(state);
+                Operation.ShiftRows(state);
+                Operation.MixColumns(state);
+                Operation.AddRoundKey(state, w[round*Nb], (round+1)*Nb-1);
+            }
+            
+            // copy state array to output
+            for(int r=0;r<4;r++) {
+                for(int c=0;c<4;c++)
+                    output[r+4*c] = state[r,c];
+            }
+            return output;
         }
         
         public string Encrypt(string UserIn)
         {
             OPS_AES256 Operation = new OPS_AES256();
-            ulong msgLen = (ulong)(UserIn.Length+((16-UserIn.Length)%16));
-            // initialize arrays and the state matrix.
-            byte[] Input = new byte[16];
-            byte[,] state = new byte[4,4] {{0, 0, 0, 0}, {0, 0, 0, 0},
-                                           {0, 0, 0, 0}, {0, 0, 0, 0}};
-            byte[] output = new byte[msgLen];
             
+            // amount of indexes in output.
+            ulong msgLen = (ulong)(UserIn.Length+((16-UserIn.Length)%16));
+            
+            // AES algorithm size
+            byte Nb = 4;
+            byte Nk = 8;
+            byte Nr = 14;
+            
+            // initialize Input output arrays.
+            byte[] Input = new byte[4*Nb];
+            byte[] output = new byte[msgLen];
+            uint[] w = new uint[Nb*(Nr+1)];
+
             // append user input to single-dimentional array
             Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             
-            // put 1-dimentional array values to a 2-dimentional matrix.
+            // call function Cipher
+            Cipher(Input, output, w, Nb, Nr);
+            
+            // initialize matrix to manipulate
+            byte[,] state = new byte[4, Nb];
+            
+            // put 1-dimentional array values to a 2-dimentional matrix
             for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++) {
+                for(int c=0;c<Nb;c++) {
                     state[r,c] = Input[r+4*c];
                 }
             }
             
             /* ======= test before function ======= */
             for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++) {
+                for(int c=0;c<Nb;c++) {
                     char ch = Convert.ToChar(state[r,c]);
                     string d = ch.ToString();
                     Console.Write($"\npre-state: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
@@ -282,7 +327,7 @@ namespace AES
             
             // for testing values
             for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++) {
+                for(int c=0;c<Nb;c++) {
                     char ch = Convert.ToChar(state[r,c]);
                     string d = ch.ToString();
                     Console.Write($"\nstate: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
@@ -290,14 +335,8 @@ namespace AES
                 Console.WriteLine();
             }
             
-            // copy state array to output
-            for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++)
-                    output[r+4*c] = state[r,c];
-            }
-            
             if(Input.Length != 16) {
-                // || W.Length != 120  || output.Length != 17
+                // || w.Length != 120  || output.Length != 16
                 throw new ArgumentException("length doesn't match");
             }
             
