@@ -14,6 +14,8 @@ namespace AES
     // operations of aes256
     public class OPS_AES256
     {
+        /* ENCRYPTION/DECRYPTION */
+        
         // Rijndael's S-box as a 2-dimentional matrix
         private static readonly byte[,] Sbox = new byte[16,16] {
             {0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 
@@ -68,13 +70,14 @@ namespace AES
             0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21,
             0xc, 0x7d}};
         
-        //bitwise circular-left-shift operator for rotating by 8 bits.
-        public static byte RotWord(byte x)
-        {
-            return (byte)((x>>8)|((x<<8)-8));
-        }
         public static byte[] Rcon = new byte[] {
             0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
+
+        // bitwise circular-left-shift operator for rotating by 8 bits.
+        public uint RotWord(int x)
+        {
+            return (uint)( (x << 8)|(x>>32-8) );
+        }
         
         // Galois Field Multipication 2^8
         public byte GF256(byte x, byte y)
@@ -88,6 +91,8 @@ namespace AES
             }
             return p;
         }
+        
+        /* ENCRYPTION */
         
         public byte[,] SubBytes(byte[,] b)
         {
@@ -219,10 +224,11 @@ namespace AES
         {
             OPS_AES256 Operation = new OPS_AES256();
             byte Nb = 4;
+            byte Nr = 14;
             uint temp;
             int i=0;
             do {
-                w[i] = (uint)((key[4*i]<<24) | (key[4*i+1]<<16) | 
+                w[i] = (uint)((key[4*i]<<24) | (key[4*i+1]<<16) |
                               (key[4*i+2]<<8) | key[4*i+3]);
                 i++;
             } while(i < Nk);
@@ -230,8 +236,8 @@ namespace AES
             while (i<Nb*(Nr+1)) {
                 temp = w[i-1];
                 if(i % Nk == 0) {
-                    temp = Operation.SubWord(Operation.RotWord(temp) ^ 
-                                             Operation.Rcon[i/Nk]);
+                    temp = Operation.SubWord(Operation.RotWord(temp) ^
+                                                    Operation.Rcon[i/Nk]);
                 }
                 else if(Nk>6 || i%Nk == 4) {
                     temp = Operation.SubWord(temp);
