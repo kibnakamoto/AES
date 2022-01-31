@@ -67,6 +67,12 @@ namespace AES
             0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61}, {0x17, 0x2b, 0x4,
             0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21,
             0xc, 0x7d}};
+        
+        //bitwise circular-left-shift operator for rotating by 8 bits.
+        public static byte RotWord(byte x)
+        {
+            return (byte)((x>>8)|((x<<8)-8));
+        }
         public static byte[] Rcon = new byte[] {
             0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
         
@@ -132,7 +138,7 @@ namespace AES
             return S;
         }
         
-        public byte SubWord(byte x)
+        public uint SubWord(uint x)
         {
             
             return 0;
@@ -212,13 +218,27 @@ namespace AES
         protected byte[,] KeyExpansion(byte[] key, uint[] w, byte Nk)
         {
             OPS_AES256 Operation = new OPS_AES256();
-            byte temp;
-            byte i=0;
+            byte Nb = 4;
+            uint temp;
+            int i=0;
             do {
                 w[i] = (uint)((key[4*i]<<24) | (key[4*i+1]<<16) | 
                               (key[4*i+2]<<8) | key[4*i+3]);
                 i++;
             } while(i < Nk);
+            i=Nk;
+            while (i<Nb*(Nr+1)) {
+                temp = w[i-1];
+                if(i % Nk == 0) {
+                    temp = Operation.SubWord(Operation.RotWord(temp) ^ 
+                                             Operation.Rcon[i/Nk]);
+                }
+                else if(Nk>6 || i%Nk == 4) {
+                    temp = Operation.SubWord(temp);
+                }
+                w[i] = w[i-Nk] ^ temp;
+                i++;
+            }
             return null;
         }
         
