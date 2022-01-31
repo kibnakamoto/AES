@@ -67,6 +67,8 @@ namespace AES
             0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61}, {0x17, 0x2b, 0x4,
             0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21,
             0xc, 0x7d}};
+        public static byte[] Rcon = new byte[] {
+            0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
         
         // Galois Field Multipication 2^8
         public byte GF256(byte x, byte y)
@@ -136,11 +138,11 @@ namespace AES
             return 0;
         }
         
-        public byte[,] AddRoundKey(byte[,] state, byte[] W, int round)
+        public byte[,] AddRoundKey(byte[,] state, byte[] W, int NRround)
         {
             for(int r=0;r<4;r++) {
                 for(int c=0;c<4;c++)
-                    state[r,c] ^= W[round*4+c];
+                    state[r,c] ^= W[NRround*4+c];
             }
             return state;
         }
@@ -206,9 +208,17 @@ namespace AES
     
     public class AES256
     {
-        // create KeyExpansion
-        protected byte[,] KeyExpansion()
+        // KeyExpansion
+        protected byte[,] KeyExpansion(byte[] key, uint[] w, byte Nk)
         {
+            OPS_AES256 Operation = new OPS_AES256();
+            byte temp;
+            byte i=0;
+            do {
+                w[i] = (uint)((key[4*i]<<24) | (key[4*i+1]<<16) | 
+                              (key[4*i+2]<<8) | key[4*i+3]);
+                i++;
+            } while(i < Nk);
             return null;
         }
         
@@ -218,7 +228,8 @@ namespace AES
             ulong msgLen = (ulong)(UserIn.Length+((16-UserIn.Length)%16));
             // initialize arrays and the state matrix.
             byte[] Input = new byte[16];
-            byte[,] state = new byte[4,4] {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
+            byte[,] state = new byte[4,4] {{0, 0, 0, 0}, {0, 0, 0, 0},
+                                           {0, 0, 0, 0}, {0, 0, 0, 0}};
             byte[] output = new byte[msgLen];
             
             // append user input to single-dimentional array
