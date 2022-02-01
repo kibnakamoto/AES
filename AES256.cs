@@ -152,9 +152,12 @@ namespace AES
         public byte[,] AddRoundKey(byte[,] state, int[] w, int NRround)
         {
             // fix function. not working
-            for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++)
-                    state[r,c] ^= (byte)w[NRround*4+c];
+            for(int c=0;c<4;c++) {
+                int Windex = w[NRround*4+c];
+                state[0,c] ^= (byte)(Windex >> 24);
+                state[1,c] ^= (byte)(Windex >> 16);
+                state[2,c] ^= (byte)(Windex >> 8);
+                state[3,c] ^= (byte)(Windex);
             }
             return state;
         }
