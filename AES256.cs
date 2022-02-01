@@ -74,9 +74,9 @@ namespace AES
             0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
 
         // bitwise circular-left-shift operator for rotating by 8 bits.
-        public uint RotWord(int x)
+        public int RotWord(int x)
         {
-            return (uint)( (x << 8)|(x>>32-8) );
+            return (int)( (x << 8)|(x>>32-8) );
         }
         
         // Galois Field Multipication 2^8
@@ -149,11 +149,12 @@ namespace AES
             return 0;
         }
         
-        public byte[,] AddRoundKey(byte[,] state, uint[] W, int NRround)
+        public byte[,] AddRoundKey(byte[,] state, int[] w, int NRround)
         {
+            // fix function. not working
             for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++) // TODO: fix W. array or uint
-                    state[r,c] ^= W[NRround*4+c];
+                for(int c=0;c<4;c++)
+                    state[r,c] ^= (byte)w[NRround*4+c];
             }
             return state;
         }
@@ -219,37 +220,39 @@ namespace AES
     
     public class AES256
     {
-        // KeyExpansion
-        // protected uint[] KeyExpansion(byte[] key, uint[] w, byte Nk)
-        // {
-        //     OPS_AES256 Operation = new OPS_AES256();
-        //     byte Nb = 4;
-        //     byte Nr = 14;
-        //     uint temp;
-        //     int i=0;
-        //     do {
-        //         w[i] = (uint)((key[4*i]<<24) | (key[4*i+1]<<16) |
-        //                       (key[4*i+2]<<8) | key[4*i+3]);
-        //         i++;
-        //     } while(i < Nk);
-        //     i=Nk;
-        //     while (i<Nb*(Nr+1)) {
-        //         temp = w[i-1];
-        //         if(i % Nk == 0) {
-        //             temp = Operation.SubWord(Operation.RotWord((int)temp) ^
-        //                                      OPS_AES256.Rcon[i/Nk]);
-        //         }
-        //         else if(Nk>6 || i%Nk == 4) {
-        //             temp = Operation.SubWord(temp);
-        //         }
-        //         w[i] = w[i-Nk] ^ temp;
-        //         i++;
-        //     }
-        //     return w;
-        // }
+        // AES algorithm size
+        protected static byte Nb = 4;
+        protected static byte Nr = 14;
+        protected static byte Nk = 8;
         
-        protected byte[] Cipher(byte[] Input, byte[] output, uint[] w, 
-                                byte Nb, byte Nr)
+        // KeyExpansion
+        protected int[] KeyExpansion(byte[] key, int[] w)
+        {
+            OPS_AES256 Operation = new OPS_AES256();
+            int temp;
+            int i=0;
+            do {
+                w[i] = ((key[4*i]<<24) | (key[4*i+1]<<16) |
+                              (key[4*i+2]<<8) | key[4*i+3]);
+                i++;
+            } while(i < Nk);
+            i=Nk;
+            while (i<Nb*(Nr+1)) {
+                temp = w[i-1];
+                if(i % Nk == 0) {
+                    temp = Operation.SubWord(Operation.RotWord(temp) ^
+                                             OPS_AES256.Rcon[i/Nk]);
+                }
+                else if(Nk>6 || i%Nk == 4) {
+                    temp = Operation.SubWord(temp);
+                }
+                w[i] = w[i-Nk] ^ temp;
+                i++;
+            }
+            return w;
+        }
+        
+        protected byte[] Cipher(byte[] Input, byte[] output, int[] w)
         {
             OPS_AES256 Operation = new OPS_AES256();
 
@@ -264,12 +267,12 @@ namespace AES
             }
             
             // call functions to manipulate state matrix
-            Operation.AddRoundKey(state, w[0], Nb-1);
+            // Operation.AddRoundKey(state, w, Nb-1);
             for(int round=1;round<Nr-1;round++) {
                 Operation.SubBytes(state);
                 Operation.ShiftRows(state);
                 Operation.MixColumns(state);
-                Operation.AddRoundKey(state, w[round*Nb], (round+1)*Nb-1);
+                // Operation.AddRoundKey(state, w, (round+1)*Nb-1);
             }
             
             // copy state array to output
@@ -287,22 +290,21 @@ namespace AES
             // amount of indexes in output.
             ulong msgLen = (ulong)(UserIn.Length+((16-UserIn.Length)%16));
             
-            // AES algorithm size
-            byte Nb = 4;
-            byte Nk = 8;
-            byte Nr = 14;
-            
             // initialize Input output arrays.
             byte[] Input = new byte[4*Nb];
             byte[] output = new byte[msgLen];
-            uint[] w = new uint[Nb*(Nr+1)];
-
+            int[] w = new int[Nb*(Nr+1)];
+            
             // append user input to single-dimentional array
             Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             
-            // call function Cipher
-            Cipher(Input, output, w, Nb, Nr);
+            // KeyExpansion
+            KeyExpansion(Input, w);
             
+            // call function Cipher
+            Cipher(Input, output, w);
+            
+            /* TEST */
             // initialize matrix to manipulate
             byte[,] state = new byte[4, Nb];
             
@@ -334,6 +336,8 @@ namespace AES
                 }
                 Console.WriteLine();
             }
+            
+            /* END TEST */
             
             if(Input.Length != 16) {
                 // || w.Length != 120  || output.Length != 16
