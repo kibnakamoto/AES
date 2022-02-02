@@ -70,7 +70,7 @@ namespace AES
             0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21,
             0xc, 0x7d}};
         
-        public static byte[] Rcon = new byte[] {
+        public static readonly byte[] Rcon = new byte[11] {
             0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
 
         // bitwise circular-left-shift operator for rotating by 8 bits.
@@ -145,8 +145,16 @@ namespace AES
         
         public int SubWord(int x)
         {
+            // declare lambda function subInt
+            Func<int, int> subInt = default(Func<int, int>);
             
-            return 0;
+            // lambda function
+            subInt = y => Sbox[y>>4, y&0x0F];
+            
+            int Newx = (subInt(x>>24)<<24) | (subInt((x>>16)&0xff)<<16) |
+                       (subInt((x>>8)&0xff)<<8) | (subInt(x&0xff));
+            
+            return Newx;
         }
         
         public byte[,] AddRoundKey(byte[,] state, int[] w, int NRround)
@@ -235,8 +243,8 @@ namespace AES
             int temp;
             int i=0;
             do {
-                w[i] = ((key[4*i]<<24) | (key[4*i+1]<<16) |
-                              (key[4*i+2]<<8) | key[4*i+3]);
+                w[i] = (int)((key[4*i]<<24) | (key[4*i+1]<<16) |
+                             (key[4*i+2]<<8) | key[4*i+3]);
                 i++;
             } while(i < Nk);
             i=Nk;
@@ -275,8 +283,11 @@ namespace AES
                 Operation.SubBytes(state);
                 Operation.ShiftRows(state);
                 Operation.MixColumns(state);
-                // Operation.AddRoundKey(state, w, (round+1)*Nb-1);
+                // Operation.AddRoundKey(state, w, round*Nb - (round+1)*Nb-1);
             }
+            Operation.SubBytes(state);
+            Operation.ShiftRows(state);
+            // Operation.AddRoundKey(state, w, Nr*Nb - (Nr+1)*Nb-1);
             
             // copy state array to output
             for(int r=0;r<4;r++) {
