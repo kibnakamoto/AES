@@ -75,7 +75,7 @@ namespace AES
             0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
         
         // salt for generating key. Salt creates a safer key
-        private static readonly byte[] Salt = new byte[] {
+        protected static readonly byte[] Salt = new byte[] {
             0xf4, 0x32, 0x10 , 0x43, 0xff, 0x5a, 0xae, 0x56};
         
         // generate key with salt
@@ -160,7 +160,7 @@ namespace AES
         {
             // lambda function subInt
             Func<int, int> subInt = default(Func<int, int>);
-            subInt = y => Sbox[y>>4, y&0x0F];
+            subInt = y => Sbox[(y&0xff)>>4, y&0x0F];
             
             return (subInt(x>>24)<<24) | (subInt((x>>16)&0xff)<<16) |
                        (subInt((x>>8)&0xff)<<8) | (subInt(x&0xff));
@@ -257,6 +257,7 @@ namespace AES
                 i++;
             } while(i < Nk);
             i=Nk;
+            // This part might not be working. Check SubWord transformation function
             while (i<Nb*(Nr+1)) {
                 temp = w[i-1];
                 if(i % Nk == 0) {
@@ -287,16 +288,16 @@ namespace AES
             }
             
             // call functions to manipulate state matrix
-            // Operation.AddRoundKey(state, w, Nb-1);
+            Operation.AddRoundKey(state, w, Nb-1);
             for(int round=1;round<Nr-1;round++) {
                 Operation.SubBytes(state);
                 Operation.ShiftRows(state);
                 Operation.MixColumns(state);
-                // Operation.AddRoundKey(state, w, round*Nb - (round+1)*Nb-1);
+                Operation.AddRoundKey(state, w, round);
             }
             Operation.SubBytes(state);
             Operation.ShiftRows(state);
-            // Operation.AddRoundKey(state, w, Nr*Nb - (Nr+1)*Nb-1);
+            Operation.AddRoundKey(state, w, Nr);
             
             // copy state array to output
             for(int r=0;r<4;r++) {
@@ -311,11 +312,9 @@ namespace AES
             OPS_AES256 Operation = new OPS_AES256();
             
             // pads message so that length is a multiple of 16
-            ulong padLen = (ulong)((16-UserIn.Length)%16);
-            UserIn = UserIn.PadRight(UserIn.Length+padLen, '0');
-            
-            // amount of indexes in output.
-            ulong msgLen = (ulong)(UserIn.Length+((16-UserIn.Length)%16));
+            // length of output and UserIn.
+            int msgLen = (UserIn.Length+((16-UserIn.Length)%16));
+            UserIn = UserIn.PadRight(msgLen, '0');
             
             // initialize Input output arrays.
             byte[] Input = new byte[4*Nb];
@@ -333,7 +332,7 @@ namespace AES
             // call function Cipher
             Cipher(Input, output, w);
             
-            /* TEST */
+            /* START TEST */
             // initialize matrix to manipulate
             byte[,] state = new byte[4, Nb];
             
