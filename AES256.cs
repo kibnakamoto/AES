@@ -8,6 +8,7 @@
 
 using System;
 using System.Text;
+using System.Security.Cryptography; // for generating key
 
 namespace AES
 {
@@ -72,7 +73,19 @@ namespace AES
         
         public static readonly byte[] Rcon = new byte[11] {
             0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
-
+        
+        // salt for generating key. Salt creates a safer key
+        private static readonly byte[] Salt = new byte[] {
+            0xf4, 0x32, 0x10 , 0x43, 0xff, 0x5a, 0xae, 0x56};
+        
+        // generate key with salt
+        public byte[] CreateKey(string input, int keyBytes = 32)
+        {
+            const int Iterations = 300;
+            var keyGenerator = new Rfc2898DeriveBytes(input, Salt, Iterations);
+            return keyGenerator.GetBytes(keyBytes);
+        }
+        
         // bitwise circular-left-shift operator for rotating by 8 bits.
         public int RotWord(int x)
         {
@@ -145,16 +158,12 @@ namespace AES
         
         public int SubWord(int x)
         {
-            // declare lambda function subInt
+            // lambda function subInt
             Func<int, int> subInt = default(Func<int, int>);
-            
-            // lambda function
             subInt = y => Sbox[y>>4, y&0x0F];
             
-            int Newx = (subInt(x>>24)<<24) | (subInt((x>>16)&0xff)<<16) |
+            return (subInt(x>>24)<<24) | (subInt((x>>16)&0xff)<<16) |
                        (subInt((x>>8)&0xff)<<8) | (subInt(x&0xff));
-            
-            return Newx;
         }
         
         public byte[,] AddRoundKey(byte[,] state, int[] w, int NRround)
@@ -300,6 +309,7 @@ namespace AES
         public string Encrypt(string UserIn)
         {
             OPS_AES256 Operation = new OPS_AES256();
+            Aes aes = Aes.Create();
             
             // amount of indexes in output.
             ulong msgLen = (ulong)(UserIn.Length+((16-UserIn.Length)%16));
@@ -308,12 +318,14 @@ namespace AES
             byte[] Input = new byte[4*Nb];
             byte[] output = new byte[msgLen];
             int[] w = new int[Nb*(Nr+1)];
-            
+            byte[] key = new byte[4*Nk];
+            key = Operation.CreateKey(UserIn);
+
             // append user input to single-dimentional array
             Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             
             // KeyExpansion
-            KeyExpansion(Input, w);
+            KeyExpansion(key, w);
             
             // call function Cipher
             Cipher(Input, output, w);
@@ -338,8 +350,6 @@ namespace AES
                 }
                 Console.WriteLine();
             }
-            
-            Operation.InvShiftRows(state);
             
             // for testing values
             for(int r=0;r<4;r++) {
@@ -367,8 +377,9 @@ namespace AES
             return hex.ToString();
         }
         
-        protected byte[,] InvKeyExpansion()
+        protected byte[] InvCipher()
         {
+            
             return null;
         }
         
