@@ -309,7 +309,10 @@ namespace AES
         public string Encrypt(string UserIn)
         {
             OPS_AES256 Operation = new OPS_AES256();
-            Aes aes = Aes.Create();
+            
+            // pads message so that length is a multiple of 16
+            ulong padLen = (ulong)((16-UserIn.Length)%16);
+            UserIn = UserIn.PadRight(UserIn.Length+padLen, '0');
             
             // amount of indexes in output.
             ulong msgLen = (ulong)(UserIn.Length+((16-UserIn.Length)%16));
