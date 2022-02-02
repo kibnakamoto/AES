@@ -9,6 +9,7 @@ Email: taha.ez.ca@gmail.com
 
 aes256 encryption method in c#. this project just started.
 
+this implementation uses salt.
 
 GF(2) = XOR. xor in the Galois Field is adding.
 
