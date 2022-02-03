@@ -72,7 +72,8 @@ namespace AES
             0xc, 0x7d}};
         
         public static readonly byte[] Rcon = new byte[11] {
-            0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
+            0x8d, 0x01, 0x02, 0x04, 0x08, 0x10,
+            0x20, 0x40, 0x80, 0x1b, 0x36};
         
         // salt for generating key. Salt creates a safer key
         protected static readonly byte[] Salt = new byte[] {
@@ -166,11 +167,11 @@ namespace AES
                        (subInt((x>>8)&0xff)<<8) | (subInt(x&0xff));
         }
         
-        public byte[,] AddRoundKey(byte[,] state, int[] w, int NRround)
+        public byte[,] AddRoundKey(byte[,] state, int[] w, int round)
         {
             // fix function. not working
             for(int c=0;c<4;c++) {
-                int Windex = w[NRround*4+c];
+                int Windex = w[round*4+c];
                 state[0,c] ^= (byte)(Windex >> 24);
                 state[1,c] ^= (byte)(Windex >> 16);
                 state[2,c] ^= (byte)(Windex >> 8);
@@ -248,6 +249,7 @@ namespace AES
         // KeyExpansion
         protected int[] KeyExpansion(byte[] key, int[] w)
         {
+            // KeyExpansion loops wrong temp while i => 2 is wrong
             OPS_AES256 Operation = new OPS_AES256();
             int temp;
             int i=0;
@@ -257,19 +259,28 @@ namespace AES
                 i++;
             } while(i < Nk);
             i=Nk;
-            // This part might not be working. Check SubWord transformation function
+            
+            // Rcon values. initialize twice so it doesn't override
+            int[] rcon = new int[11];
+            for (int c=1;c<11;c++)
+            { // this part is wrong
+                 rcon[c] = (byte)(OPS_AES256.Rcon[c] << 24);
+            }
+
             while (i<Nb*(Nr+1)) {
                 temp = w[i-1];
+                Console.Write(temp.ToString("x") + " ");
                 if(i % Nk == 0) {
                     temp = Operation.SubWord(Operation.RotWord(temp) ^
-                                             OPS_AES256.Rcon[i/Nk]);
+                                             rcon[i/Nk]);
                 }
-                else if(Nk>6 || i%Nk == 4) {
+                else if(Nk>6 && i%Nk == 4) {
                     temp = Operation.SubWord(temp);
                 }
-                w[i] = w[i-Nk] ^ temp;
+                w[i] = temp ^ w[i-Nk];
                 i++;
             }
+
             return w;
         }
         
@@ -320,14 +331,19 @@ namespace AES
             byte[] Input = new byte[4*Nb];
             byte[] output = new byte[msgLen];
             int[] w = new int[Nb*(Nr+1)];
-            byte[] key = new byte[4*Nk];
-            key = Operation.CreateKey(UserIn);
-
+            byte[] key = new byte[4*8]
+            {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
+            0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
+            // key = Operation.CreateKey(UserIn);
+            
             // append user input to single-dimentional array
             Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             
-            // KeyExpansion
             KeyExpansion(key, w);
+            // int k = Operation.SubWord(Operation.RotWord(w[7]));
+            // int ss = (int)OPS_AES256.Rcon[1] ^ k;
+            // int test = w[0];
+            // Console.Write(test.ToString("x") + " ");
             
             // call function Cipher
             Cipher(Input, output, w);
@@ -344,31 +360,26 @@ namespace AES
             }
             
             /* ======= test before function ======= */
-            for(int r=0;r<4;r++) {
-                for(int c=0;c<Nb;c++) {
-                    char ch = Convert.ToChar(state[r,c]);
-                    string d = ch.ToString();
-                    Console.Write($"\npre-state: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
-                }
-                Console.WriteLine();
-            }
+            // for(int r=0;r<4;r++) {
+            //     for(int c=0;c<Nb;c++) {
+            //         char ch = Convert.ToChar(state[r,c]);
+            //         string d = ch.ToString();
+            //         Console.Write($"\npre-state: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
+            //     }
+            //     Console.WriteLine();
+            // }
             
-            // for testing values
-            for(int r=0;r<4;r++) {
-                for(int c=0;c<Nb;c++) {
-                    char ch = Convert.ToChar(state[r,c]);
-                    string d = ch.ToString();
-                    Console.Write($"\nstate: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
-                }
-                Console.WriteLine();
-            }
+            // // for testing values
+            // for(int r=0;r<4;r++) {
+            //     for(int c=0;c<Nb;c++) {
+            //         char ch = Convert.ToChar(state[r,c]);
+            //         string d = ch.ToString();
+            //         Console.Write($"\nstate: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
+            //     }
+            //     Console.WriteLine();
+            // }
             
             /* END TEST */
-            
-            if(Input.Length != 16) {
-                // || w.Length != 120  || output.Length != 16
-                throw new ArgumentException("length doesn't match");
-            }
             
             // convert output array to hex string
             StringBuilder hex = new StringBuilder(output.Length<<1);
