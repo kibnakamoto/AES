@@ -71,6 +71,7 @@ namespace AES
             0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21,
             0xc, 0x7d}};
         
+        // round constant array
         public static readonly byte[] Rcon = new byte[11] {
             0x8d, 0x01, 0x02, 0x04, 0x08, 0x10,
             0x20, 0x40, 0x80, 0x1b, 0x36};
@@ -242,14 +243,15 @@ namespace AES
     public class AES256
     {
         // AES algorithm size
-        protected static byte Nb = 4;
-        protected static byte Nr = 14;
-        protected static byte Nk = 8;
+        protected const byte Nb = 4;
+        protected const byte Nr = 14;
+        protected const byte Nk = 8;
         
         // KeyExpansion
         protected int[] KeyExpansion(byte[] key, int[] w)
         {
-            // KeyExpansion loops wrong temp while i => 2 is wrong
+            /* KeyExpansion loops wrong temp while i => 16 is wrong
+               the answer has to be  but it is  */
             OPS_AES256 Operation = new OPS_AES256();
             int temp;
             int i=0;
@@ -263,16 +265,16 @@ namespace AES
             // Rcon values. initialize twice so it doesn't override
             int[] rcon = new int[11];
             for (int c=1;c<11;c++)
-            { // this part is wrong
-                 rcon[c] = (byte)(OPS_AES256.Rcon[c] << 24);
+            {
+                 rcon[c] = (byte)OPS_AES256.Rcon[c] << 24;
             }
-
+            
             while (i<Nb*(Nr+1)) {
                 temp = w[i-1];
-                Console.Write(temp.ToString("x") + " ");
+                // Console.Write(temp.ToString("x") + " ");
                 if(i % Nk == 0) {
-                    temp = Operation.SubWord(Operation.RotWord(temp) ^
-                                             rcon[i/Nk]);
+                    temp = Operation.SubWord(Operation.RotWord(temp)) ^
+                                             rcon[i/Nk];
                 }
                 else if(Nk>6 && i%Nk == 4) {
                     temp = Operation.SubWord(temp);
@@ -280,7 +282,6 @@ namespace AES
                 w[i] = temp ^ w[i-Nk];
                 i++;
             }
-
             return w;
         }
         
@@ -299,7 +300,7 @@ namespace AES
             }
             
             // call functions to manipulate state matrix
-            Operation.AddRoundKey(state, w, Nb-1);
+            Operation.AddRoundKey(state, w, 0);
             for(int round=1;round<Nr-1;round++) {
                 Operation.SubBytes(state);
                 Operation.ShiftRows(state);
@@ -325,12 +326,12 @@ namespace AES
             // pads message so that length is a multiple of 16
             // length of output and UserIn.
             int msgLen = (UserIn.Length+((16-UserIn.Length)%16));
-            UserIn = UserIn.PadRight(msgLen, '0');
+            UserIn = UserIn.PadRight(16, '0');
             
             // initialize Input output arrays.
             byte[] Input = new byte[4*Nb];
-            byte[] output = new byte[msgLen];
-            int[] w = new int[Nb*(Nr+1)];
+            byte[] output = new byte[16];
+            int[] w = new int[Nb*(Nr+1)]; // didn't define w?
             byte[] key = new byte[4*8]
             {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
             0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
@@ -339,13 +340,8 @@ namespace AES
             // append user input to single-dimentional array
             Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             
+            // call KeyExpansion and Cipher function
             KeyExpansion(key, w);
-            // int k = Operation.SubWord(Operation.RotWord(w[7]));
-            // int ss = (int)OPS_AES256.Rcon[1] ^ k;
-            // int test = w[0];
-            // Console.Write(test.ToString("x") + " ");
-            
-            // call function Cipher
             Cipher(Input, output, w);
             
             /* START TEST */
