@@ -9,6 +9,7 @@
 using System;
 using System.Text;
 using System.Security.Cryptography; // for generating input based key
+using System.Linq; // for decryption function(Hex string to bytearray)
 
 namespace AES
 {
@@ -268,7 +269,6 @@ namespace AES
             }
             return S;
         }
-
     }
     
     public class AES256
@@ -281,8 +281,6 @@ namespace AES
         // KeyExpansion
         protected int[] KeyExpansion(byte[] key, int[] w)
         {
-            /* KeyExpansion loops wrong temp while i > 16 is wrong
-               the answer has to be  but it is  */
             OPS_AES256 Operation = new OPS_AES256();
             int temp;
             int i=0;
@@ -422,15 +420,52 @@ namespace AES
             return hex.ToString();
         }
         
-        protected byte[] InvCipher()
+        protected byte[] InvCipher(byte[] Input, byte[] output, int[] w)
         {
+            OPS_AES256 Operation = new OPS_AES256();
             
-            return null;
+            byte[,] state = new byte[4,Nb];
+            for(int r=0;r<4;r++) {
+                for(int c=0;c<Nb;c++) {
+                    state[r,c] = Input[r+4*c];
+                }
+            }
+            Operation.AddRoundKey(state, w, Nr);
+            for(int round=Nr-1;round>1;round--) {
+                Operation.InvShiftRows(state);
+                Operation.InvSubBytes(state);
+                Operation.AddRoundKey(state, w, round);
+                Operation.InvMixColumns(state);
+            }
+            Operation.InvShiftRows(state);
+            Operation.InvSubBytes(state);
+            Operation.AddRoundKey(state, w, 0);
+            
+            for(int r=0;r<4;r++) {
+                for(int c=0;c<Nb;c++) {
+                    output[r+4*c] = state[r,c];
+                }
+            }
+            return output;
         }
         
-        public string Decrypt(string UserIn)
+        public string Decrypt(string UserIn, byte[] key)
         {
-            return null;
+            OPS_AES256 Operation = new OPS_AES256();
+            byte[] output = new byte[4*Nb];
+            byte[] Input = new byte[4*Nb] {0x00, 0x11, 0x22,0x33,0x44,0x55,0x66,
+                                           0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff};
+            int[] w = new int[4*Nk];
+            // Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
+            Input = Enumerable.Range(0, UserIn.Length>>1)
+                    .Select(x=>Convert.ToByte(UserIn.Substring(x<<1, 2), 16))
+                    .ToArray();
+            
+            KeyExpansion(key, w);
+            InvCipher(Input, output, w);
+            string OutStr = System.Text.Encoding.Default.GetString(output);
+            Console.WriteLine(OutStr);
+            return OutStr;
         }
     }
 }
