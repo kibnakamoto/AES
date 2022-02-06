@@ -8,7 +8,7 @@
 
 using System;
 using System.Text;
-using System.Security.Cryptography; // for generating key
+using System.Security.Cryptography; // for generating input based key
 
 namespace AES
 {
@@ -145,6 +145,7 @@ namespace AES
         
         public byte[,] MixColumns(byte[,] S)
         {
+            // TODO: fix
             for(int c=0;c<4;c++) {
                 S[0,c] = (byte)(GF256(0x02,S[0,c]) ^ GF256(0x03,S[1,c]) ^
                                 S[2,c] ^ S[3,c]);
@@ -157,6 +158,37 @@ namespace AES
             }
             return S;
         }
+    /*
+    public static byte gmul2(byte a) {
+        byte hi = (byte) (a & 0x80);
+        a <<= 1;
+        if ((hi == (byte) 0x80))
+            a ^= 0x1b;
+        return a;
+    }
+
+    public static byte gmul3(byte a) {
+
+        byte b = a;
+        a = gmul2(a);
+        b ^= a;
+        return b;
+    }
+
+        
+        public byte[,] MixColumns(byte[,] state) {
+            byte[] tempCol;
+            for (int j = 0; j < 4; j++) {
+                tempCol = new byte[]{state[0,j], state[1,j], state[2,j], state[3,j]};
+                state[0,j] = (byte) (gmul2(tempCol[0]) ^ gmul3(tempCol[1]) ^ tempCol[2] ^ tempCol[3]);
+                state[1,j] = (byte) (tempCol[0] ^ gmul2(tempCol[1]) ^ gmul3(tempCol[2]) ^ tempCol[3]);
+                state[2,j] = (byte) (tempCol[0] ^ tempCol[1] ^ gmul2(tempCol[2]) ^ gmul3(tempCol[3]));
+                state[3,j] = (byte) (gmul3(tempCol[0]) ^ tempCol[1] ^ tempCol[2] ^ gmul2(tempCol[3]));
+            }
+            return state;
+        }
+        */
+
         
         public int SubWord(int x)
         {
@@ -197,7 +229,6 @@ namespace AES
         
         public byte[,] InvShiftRows(byte[,] S)
         {
-            // TODO: fix
             // to stop values from overriding, use 2 arrays with the same values
             byte[,] InvSpre = new byte[4,4];
             for(int r=1;r<4;r++) {
@@ -250,7 +281,7 @@ namespace AES
         // KeyExpansion
         protected int[] KeyExpansion(byte[] key, int[] w)
         {
-            /* KeyExpansion loops wrong temp while i => 16 is wrong
+            /* KeyExpansion loops wrong temp while i > 16 is wrong
                the answer has to be  but it is  */
             OPS_AES256 Operation = new OPS_AES256();
             int temp;
@@ -264,17 +295,16 @@ namespace AES
             
             // Rcon values. initialize twice so it doesn't override
             int[] rcon = new int[11];
-            for (int c=1;c<11;c++)
+            for(int c=1;c<11;c++)
             {
-                 rcon[c] = (byte)OPS_AES256.Rcon[c] << 24;
+                rcon[c] = (byte)OPS_AES256.Rcon[c] << 24;
             }
             
-            while (i<Nb*(Nr+1)) {
+            while (i < Nb*(Nr+1)) {
                 temp = w[i-1];
-                // Console.Write(temp.ToString("x") + " ");
-                if(i % Nk == 0) {
-                    temp = Operation.SubWord(Operation.RotWord(temp)) ^
-                                             rcon[i/Nk];
+                Console.Write($"i:\t{i}\t" + temp.ToString("x") + "\n");
+                if(i%Nk == 0) { // this part is wrong since 16 mod Nk = 0
+                    temp = Operation.SubWord(Operation.RotWord(temp)) ^ rcon[i/Nk];
                 }
                 else if(Nk>6 && i%Nk == 4) {
                     temp = Operation.SubWord(temp);
@@ -288,7 +318,7 @@ namespace AES
         protected byte[] Cipher(byte[] Input, byte[] output, int[] w)
         {
             OPS_AES256 Operation = new OPS_AES256();
-
+            
             // initialize matrix to manipulate
             byte[,] state = new byte[4, Nb];
             
@@ -329,29 +359,29 @@ namespace AES
             UserIn = UserIn.PadRight(msgLen, '0');
             
             // initialize Input output arrays.
-            byte[] Input = new byte[4*Nb];
+            byte[] Input = new byte[4*Nb] {0x00, 0x11, 0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff};
             byte[] output = new byte[16];
-            int[] w = new int[Nb*(Nr+1)];
+            int[] w = new int[Nb*(Nr+1)]; // key schedule
             byte[] key = new byte[4*8]
             // FIPS 197 Cipher test vector key
-                {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c, 
-                0x0d,0x0e,0x0f,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,
-                0x1a,0x1b,0x1c,0x1d,0x1e,0x1f};
-            /* FIPS 197 KeyExpansion test vector key
-            // {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
-                0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4}; */
+                // {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c, 
+                // 0x0d,0x0e,0x0f,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,
+                // 0x1a,0x1b,0x1c,0x1d,0x1e,0x1f};
+            //  FIPS 197 KeyExpansion test vector key
+             {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
+                0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
             /* my key, this key changes based on input
             key = Operation.CreateKey(UserIn); */
             
             // append user input to single-dimentional array
-            Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
+            // Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             
             // call KeyExpansion and Cipher function
             KeyExpansion(key, w);
             Cipher(Input, output, w);
             
             /* START TEST */
-            // initialize matrix to manipulate
+            // declare state matrix
             byte[,] state = new byte[4, Nb];
             
             // put 1-dimentional array values to a 2-dimentional matrix
