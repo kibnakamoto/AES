@@ -9,7 +9,7 @@
 using System;
 using System.Text;
 using System.Security.Cryptography; // for generating input based key
-using System.Linq; // for decryption function(Hex string to bytearray)
+using System.Linq; // for decryption function. Hex string to bytearray
 
 namespace AES
 {
@@ -124,19 +124,19 @@ namespace AES
             return b;
         }
         
-        public byte[,] ShiftRows(byte[,] S)
+        public byte[,] ShiftRows(byte[,] S, byte Nb)
         {
             // to stop values from overriding, use 2 arrays with the same values
             byte[,] Spre = new byte[4,4];
             for(int r=1;r<4;r++) {
-                for(int c=0;c<4;c++){
+                for(int c=0;c<Nb;c++){
                     Spre[r,c] = S[r,c];
                 }
             }
             
             // shifting rows. First row is not changed
             for(int r=1;r<4;r++) {
-                for(int c=0;c<4;c++) {
+                for(int c=0;c<Nb;c++) {
                     S[r,c] = Spre[r, (r+c)%4];
                 }
             }
@@ -273,7 +273,7 @@ namespace AES
     
     public class AES256
     {
-        // AES algorithm size
+        // AES algorithm size for AES256
         protected const byte Nb = 4;
         protected const byte Nr = 14;
         protected const byte Nk = 8;
@@ -331,17 +331,17 @@ namespace AES
             Operation.AddRoundKey(state, w, 0);
             for(int round=1;round<Nr-1;round++) {
                 Operation.SubBytes(state);
-                Operation.ShiftRows(state);
+                Operation.ShiftRows(state, Nb);
                 Operation.MixColumns(state);
                 Operation.AddRoundKey(state, w, round);
             }
             Operation.SubBytes(state);
-            Operation.ShiftRows(state);
+            Operation.ShiftRows(state, Nb);
             Operation.AddRoundKey(state, w, Nr);
             
             // copy state array to output
             for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++)
+                for(int c=0;c<Nb;c++)
                     output[r+4*c] = state[r,c];
             }
             return output;
@@ -357,7 +357,9 @@ namespace AES
             UserIn = UserIn.PadRight(msgLen, '0');
             
             // initialize Input output arrays.
-            byte[] Input = new byte[4*Nb] {0x00, 0x11, 0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff};
+            byte[] Input = new byte[4*Nb] {0x00, 0x11, 0x22,0x33,0x44,0x55,
+                                           0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,
+                                           0xdd,0xee,0xff};
             byte[] output = new byte[16];
             int[] w = new int[Nb*(Nr+1)]; // key schedule
             byte[] key = new byte[4*8]
@@ -366,8 +368,9 @@ namespace AES
                 // 0x0d,0x0e,0x0f,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,
                 // 0x1a,0x1b,0x1c,0x1d,0x1e,0x1f};
             //  FIPS 197 KeyExpansion test vector key
-             {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
-                0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
+             {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae,
+              0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61,
+              0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
             /* my key, this key changes based on input
             key = Operation.CreateKey(UserIn); */
             
@@ -451,21 +454,18 @@ namespace AES
         
         public string Decrypt(string UserIn, byte[] key)
         {
-            OPS_AES256 Operation = new OPS_AES256();
+            // declare single-dimentional arrays
             byte[] output = new byte[4*Nb];
-            byte[] Input = new byte[4*Nb] {0x00, 0x11, 0x22,0x33,0x44,0x55,0x66,
-                                           0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff};
-            int[] w = new int[4*Nk];
-            // Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
+            byte[] Input = new byte[4*Nb];
+            int[] w = new int[Nb*(Nr+1)];
             Input = Enumerable.Range(0, UserIn.Length>>1)
                     .Select(x=>Convert.ToByte(UserIn.Substring(x<<1, 2), 16))
                     .ToArray();
             
+            // create key schedule using given key and de-Cipher
             KeyExpansion(key, w);
             InvCipher(Input, output, w);
-            string OutStr = System.Text.Encoding.Default.GetString(output);
-            Console.WriteLine(OutStr);
-            return OutStr;
+            return System.Text.Encoding.Default.GetString(output);
         }
     }
 }
