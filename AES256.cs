@@ -175,7 +175,7 @@ namespace AES
         b ^= a;
         return b;
     }
-
+        
         
         public byte[,] MixColumns(byte[,] state) {
             byte[] tempCol;
@@ -189,7 +189,7 @@ namespace AES
             return state;
         }
         */
-
+        
         
         public int SubWord(int x)
         {
@@ -248,24 +248,27 @@ namespace AES
         
         public byte[,] InvMixColumns(byte[,] S)
         {
+            // TODO: fix
             byte[] SMixArr = new byte[4] {0x0e, 0x0b, 0x0d, 0x09};
             for(int c=0;c<4;c++) {
-                S[0,c] = (byte)(GF256(SMixArr[0], S[0,c]) ^
-                                GF256(SMixArr[1], S[1,c]) ^
-                                GF256(SMixArr[2], S[2,c]) ^
-                                GF256(SMixArr[3], S[3,c]));
-                S[1,c] = (byte)(GF256(SMixArr[3], S[0,c]) ^
-                                GF256(SMixArr[0], S[1,c]) ^
-                                GF256(SMixArr[1], S[2,c]) ^
-                                GF256(SMixArr[2], S[3,c]));
-                S[2,c] = (byte)(GF256(SMixArr[2], S[0,c]) ^
-                                GF256(SMixArr[3], S[1,c]) ^
-                                GF256(SMixArr[0], S[2,c]) ^
-                                GF256(SMixArr[1], S[3,c]));
-                S[3,c] = (byte)(GF256(SMixArr[1], S[0,c]) ^
-                                GF256(SMixArr[2], S[1,c]) ^ 
-                                GF256(SMixArr[3], S[2,c]) ^
-                                GF256(SMixArr[0], S[3,c]));
+                // to stop matrix from overriding, use temporrary array
+                byte[] tmpS = new byte[4] {S[0,c], S[1,c], S[2,c], S[3,c]};
+                S[0,c] = (byte)(GF256(SMixArr[0], tmpS[0]) ^
+                                GF256(SMixArr[1], tmpS[1]) ^
+                                GF256(SMixArr[2], tmpS[2]) ^
+                                GF256(SMixArr[3], tmpS[3]));
+                S[1,c] = (byte)(GF256(SMixArr[3], tmpS[0]) ^
+                                GF256(SMixArr[0], tmpS[1]) ^
+                                GF256(SMixArr[1], tmpS[2]) ^
+                                GF256(SMixArr[2], tmpS[3]));
+                S[2,c] = (byte)(GF256(SMixArr[2], tmpS[0]) ^
+                                GF256(SMixArr[3], tmpS[1]) ^
+                                GF256(SMixArr[0], tmpS[2]) ^
+                                GF256(SMixArr[1], tmpS[3]));
+                S[3,c] = (byte)(GF256(SMixArr[1], tmpS[0]) ^
+                                GF256(SMixArr[2], tmpS[1]) ^ 
+                                GF256(SMixArr[3], tmpS[2]) ^
+                                GF256(SMixArr[0], tmpS[3]));
             }
             return S;
         }
