@@ -144,7 +144,7 @@ namespace AES
             return S;
         }
         
-        public byte[,] MixColumns(byte[,] S)
+        public byte[,] MixColumns(byte[,] S, byte Nb)
         {
                 // lambda function xtime
                 Func<byte, byte> xtime = delegate (byte x)
@@ -152,7 +152,7 @@ namespace AES
                     return (byte)((x<<1) ^ (((x>>7) & 1) * 0x1b));
                 };
                 
-                for(int c=0;c<4;c++)
+                for(int c=0;c<Nb;c++)
                 {
                     // create temporary array to stop overriding
                     byte[] tmpS = new byte[4] {S[0,c], S[1,c], S[2,c], S[3,c]};
@@ -228,7 +228,6 @@ namespace AES
         
         public byte[,] InvMixColumns(byte[,] S)
         {
-            // TODO: maybe fix, it might be working
             byte[] SMixArr = new byte[4] {0x0e, 0x0b, 0x0d, 0x09};
             for(int c=0;c<4;c++) {
                 // to stop matrix from overriding, use temporrary array
@@ -300,7 +299,7 @@ namespace AES
         {
             OPS_AES256 Operation = new OPS_AES256();
             
-            // initialize matrix to manipulate
+            // declare state matrix
             byte[,] state = new byte[4, Nb];
             
             // put 1-dimentional array values to a 2-dimentional matrix
@@ -315,7 +314,7 @@ namespace AES
             for(int round=1;round<Nr-1;round++) {
                 Operation.SubBytes(state);
                 Operation.ShiftRows(state, Nb);
-                Operation.MixColumns(state);
+                Operation.MixColumns(state, Nb);
                 Operation.AddRoundKey(state, w, round);
             }
             Operation.SubBytes(state);
@@ -347,13 +346,13 @@ namespace AES
             int[] w = new int[Nb*(Nr+1)]; // key schedule
             byte[] key = new byte[4*8]
             // FIPS 197 Cipher test vector key
-                // {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c, 
-                // 0x0d,0x0e,0x0f,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,
-                // 0x1a,0x1b,0x1c,0x1d,0x1e,0x1f};
+                {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c, 
+                0x0d,0x0e,0x0f,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,
+                0x1a,0x1b,0x1c,0x1d,0x1e,0x1f};
             //  FIPS 197 KeyExpansion test vector key
-             {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae,
-              0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61,
-              0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
+            //  {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae,
+            //   0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61,
+            //   0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
             /* my key, this key changes based on input
             key = Operation.CreateKey(UserIn); */
             
@@ -363,39 +362,6 @@ namespace AES
             // call KeyExpansion and Cipher function
             KeyExpansion(key, w);
             Cipher(Input, output, w);
-            
-            /* START TEST */
-            // declare state matrix
-            byte[,] state = new byte[4, Nb];
-            
-            // put 1-dimentional array values to a 2-dimentional matrix
-            for(int r=0;r<4;r++) {
-                for(int c=0;c<Nb;c++) {
-                    state[r,c] = Input[r+4*c];
-                }
-            }
-            
-            /* ======= test before function ======= */
-            // for(int r=0;r<4;r++) {
-            //     for(int c=0;c<Nb;c++) {
-            //         char ch = Convert.ToChar(state[r,c]);
-            //         string d = ch.ToString();
-            //         Console.Write($"\npre-state: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
-            //     }
-            //     Console.WriteLine();
-            // }
-            
-            // // for testing values
-            // for(int r=0;r<4;r++) {
-            //     for(int c=0;c<Nb;c++) {
-            //         char ch = Convert.ToChar(state[r,c]);
-            //         string d = ch.ToString();
-            //         Console.Write($"\nstate: {d}\t\t\tindexes:\tr:{r}\tc:{c}");
-            //     }
-            //     Console.WriteLine();
-            // }
-            
-            /* END TEST */
             
             // convert output array to hex string
             StringBuilder hex = new StringBuilder(output.Length<<1);
