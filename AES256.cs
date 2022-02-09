@@ -157,46 +157,19 @@ namespace AES
                     // create temporary array to stop overriding
                     byte[] tmpS = new byte[4] {S[0,c], S[1,c], S[2,c], S[3,c]};
 
-                    // MixColumns operation for 8-bit processor
+                    // MixColumns operation from AES proposal
                     byte Tmp = (byte)(tmpS[0] ^ tmpS[1] ^ tmpS[2] ^ tmpS[3]);
-                    byte Tm = (byte)(tmpS[0] ^ tmpS[1]) ; Tm = xtime(Tm); S[0,c] ^= (byte)(Tm ^ Tmp);
-                    Tm = (byte)(tmpS[1] ^ tmpS[2]) ; Tm = xtime(Tm); S[1,c] ^= (byte)(Tm ^ Tmp);
-                    Tm = (byte)(tmpS[2] ^ tmpS[3]) ; Tm = xtime(Tm); S[2,c] ^= (byte)(Tm ^ Tmp);
-                    Tm = (byte)(tmpS[3] ^ tmpS[0]) ; Tm = xtime(Tm); S[3,c] ^= (byte)(Tm ^ Tmp);
+                    byte Tm =  (byte)(tmpS[0] ^ tmpS[1]) ; Tm = xtime(Tm); 
+                    S[0,c] ^=  (byte)(Tm ^ Tmp);
+                    Tm =       (byte)(tmpS[1] ^ tmpS[2]) ; Tm = xtime(Tm); 
+                    S[1,c] ^=  (byte)(Tm ^ Tmp);
+                    Tm =       (byte)(tmpS[2] ^ tmpS[3]) ; Tm = xtime(Tm);
+                    S[2,c] ^=  (byte)(Tm ^ Tmp);
+                    Tm =       (byte)(tmpS[3] ^ tmpS[0]) ; Tm = xtime(Tm);
+                    S[3,c] ^=  (byte)(Tm ^ Tmp);
                 }
             return S;
         }
-    /*
-    public static byte gmul2(byte a) {
-        byte hi = (byte) (a & 0x80);
-        a <<= 1;
-        if ((hi == (byte) 0x80))
-            a ^= 0x1b;
-        return a;
-    }
-
-    public static byte gmul3(byte a) {
-
-        byte b = a;
-        a = gmul2(a);
-        b ^= a;
-        return b;
-    }
-        
-        
-        public byte[,] MixColumns(byte[,] state) {
-            byte[] tempCol;
-            for (int j = 0; j < 4; j++) {
-                tempCol = new byte[]{state[0,j], state[1,j], state[2,j], state[3,j]};
-                state[0,j] = (byte) (gmul2(tempCol[0]) ^ gmul3(tempCol[1]) ^ tempCol[2] ^ tempCol[3]);
-                state[1,j] = (byte) (tempCol[0] ^ gmul2(tempCol[1]) ^ gmul3(tempCol[2]) ^ tempCol[3]);
-                state[2,j] = (byte) (tempCol[0] ^ tempCol[1] ^ gmul2(tempCol[2]) ^ gmul3(tempCol[3]));
-                state[3,j] = (byte) (gmul3(tempCol[0]) ^ tempCol[1] ^ tempCol[2] ^ gmul2(tempCol[3]));
-            }
-            return state;
-        }
-        */
-        
         
         public int SubWord(int x)
         {
