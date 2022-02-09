@@ -146,23 +146,24 @@ namespace AES
         
         public byte[,] MixColumns(byte[,] S)
         {
-            // TODO: fix
-            for(int c=0;c<4;c++) {
-                // create temporary array to stop overriding
-                byte[] tmpS = new byte[4] {S[0,c], S[1,c], S[2,c], S[3,c]};
-                S[0,c] = (byte)(GF256(0x02,tmpS[0]) ^ GF256(0x03,tmpS[1]) ^
-                                tmpS[2] ^ tmpS[3]);
-                S[1,c] = (byte)(tmpS[0] ^ GF256(0x02, tmpS[1]) ^
-                                GF256(0x03, tmpS[2]) ^ tmpS[3]);
-                S[2,c] = (byte)(tmpS[0] ^ tmpS[1] ^ GF256(0x02, tmpS[2]) ^
-                                GF256(0x03, tmpS[3]));
-                S[3,c] = (byte)(GF256(0x03,tmpS[0]) ^ tmpS[1] ^ tmpS[2] ^
-                                GF256(0x02, tmpS[3]));
-                // S[0,c] = ;
-                // S[1,c] = ;
-                // S[2,c] = ;
-                // S[3,c] = ;
-            }
+                // lambda function xtime
+                Func<byte, byte> xtime = delegate (byte x)
+                {
+                    return (byte)((x<<1) ^ (((x>>7) & 1) * 0x1b));
+                };
+                
+                for(int c=0;c<4;c++)
+                {
+                    // create temporary array to stop overriding
+                    byte[] tmpS = new byte[4] {S[0,c], S[1,c], S[2,c], S[3,c]};
+
+                    // MixColumns operation for 8-bit processor
+                    byte Tmp = (byte)(tmpS[0] ^ tmpS[1] ^ tmpS[2] ^ tmpS[3]);
+                    byte Tm = (byte)(tmpS[0] ^ tmpS[1]) ; Tm = xtime(Tm); S[0,c] ^= (byte)(Tm ^ Tmp);
+                    Tm = (byte)(tmpS[1] ^ tmpS[2]) ; Tm = xtime(Tm); S[1,c] ^= (byte)(Tm ^ Tmp);
+                    Tm = (byte)(tmpS[2] ^ tmpS[3]) ; Tm = xtime(Tm); S[2,c] ^= (byte)(Tm ^ Tmp);
+                    Tm = (byte)(tmpS[3] ^ tmpS[0]) ; Tm = xtime(Tm); S[3,c] ^= (byte)(Tm ^ Tmp);
+                }
             return S;
         }
     /*
