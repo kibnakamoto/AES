@@ -90,9 +90,9 @@ namespace AES
         }
         
         // bitwise circular-left-shift operator for rotating by 8 bits.
-        public int RotWord(int x)
+        public uint RotWord(uint x)
         {
-            return (int)( (x << 8)|(x>>32-8) );
+            return (uint)( (x << 8)|(x>>32-8) );
         }
         
         // Galois Field Multipication 2^8
@@ -171,21 +171,21 @@ namespace AES
             return S;
         }
         
-        public int SubWord(int x)
+        public uint SubWord(uint x)
         {
             // lambda function subInt
-            Func<int, int> subInt = default(Func<int, int>);
+            Func<uint, uint> subInt = default(Func<uint, uint>);
             subInt = y => Sbox[(y&0xff)>>4, y&0x0F];
             
             return (subInt(x>>24)<<24) | (subInt((x>>16)&0xff)<<16) |
                        (subInt((x>>8)&0xff)<<8) | (subInt(x&0xff));
         }
         
-        public byte[,] AddRoundKey(byte[,] state, int[] w, int round)
+        public byte[,] AddRoundKey(byte[,] state, uint[] w, int round)
         {
             // fix function. not working
             for(int c=0;c<4;c++) {
-                int Windex = w[round*4+c];
+                uint Windex = w[round*4+c];
                 state[0,c] ^= (byte)(Windex >> 24);
                 state[1,c] ^= (byte)(Windex >> 16);
                 state[2,c] ^= (byte)(Windex >> 8);
@@ -260,14 +260,15 @@ namespace AES
         protected const byte Nr = 14;
         protected const byte Nk = 8;
         
+        /* KeyExpansion debugged. */
         // KeyExpansion
-        protected int[] KeyExpansion(byte[] key, int[] w)
+        protected uint[] KeyExpansion(byte[] key, uint[] w)
         {
             OPS_AES256 Operation = new OPS_AES256();
-            int temp;
+            uint temp;
             int i=0;
             do {
-                w[i] = (int)((key[4*i]<<24) | (key[4*i+1]<<16) |
+                w[i] = (uint)((key[4*i]<<24) | (key[4*i+1]<<16) |
                              (key[4*i+2]<<8) | key[4*i+3]);
                 i++;
             } while(i < Nk);
@@ -284,7 +285,7 @@ namespace AES
                 temp = w[i-1];
                 Console.Write($"i:\t{i}\t" + temp.ToString("x") + "\n");
                 if(i%Nk == 0) { // this part is wrong since 16 mod Nk = 0
-                    temp = Operation.SubWord(Operation.RotWord(temp)) ^ rcon[i/Nk];
+                    temp = Operation.SubWord(Operation.RotWord(temp)) ^ (uint)rcon[i/Nk];
                 }
                 else if(Nk>6 && i%Nk == 4) {
                     temp = Operation.SubWord(temp);
@@ -292,10 +293,11 @@ namespace AES
                 w[i] = temp ^ w[i-Nk];
                 i++;
             }
+            
             return w;
         }
         
-        protected byte[] Cipher(byte[] Input, byte[] output, int[] w)
+        protected byte[] Cipher(byte[] Input, byte[] output, uint[] w)
         {
             OPS_AES256 Operation = new OPS_AES256();
             
@@ -331,7 +333,6 @@ namespace AES
         
         public string Encrypt(string UserIn)
         {
-            OPS_AES256 Operation = new OPS_AES256();
             
             // pads message so that length is a multiple of 16
             // length of output and UserIn.
@@ -343,16 +344,16 @@ namespace AES
                                            0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,
                                            0xdd,0xee,0xff};
             byte[] output = new byte[16];
-            int[] w = new int[Nb*(Nr+1)]; // key schedule
+            uint[] w = new uint[Nb*(Nr+1)]; // key schedule
             byte[] key = new byte[4*8]
             // FIPS 197 Cipher test vector key
-                {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c, 
-                0x0d,0x0e,0x0f,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,
-                0x1a,0x1b,0x1c,0x1d,0x1e,0x1f};
+                // {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c, 
+                // 0x0d,0x0e,0x0f,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,
+                // 0x1a,0x1b,0x1c,0x1d,0x1e,0x1f};
             //  FIPS 197 KeyExpansion test vector key
-            //  {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae,
-            //   0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61,
-            //   0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
+             {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae,
+              0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61,
+              0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
             /* my key, this key changes based on input
             key = Operation.CreateKey(UserIn); */
             
@@ -372,7 +373,7 @@ namespace AES
             return hex.ToString();
         }
         
-        protected byte[] InvCipher(byte[] Input, byte[] output, int[] w)
+        protected byte[] InvCipher(byte[] Input, byte[] output, uint[] w)
         {
             OPS_AES256 Operation = new OPS_AES256();
             
@@ -406,7 +407,7 @@ namespace AES
             // declare single-dimentional arrays
             byte[] output = new byte[4*Nb];
             byte[] Input = new byte[4*Nb];
-            int[] w = new int[Nb*(Nr+1)];
+            uint[] w = new uint[Nb*(Nr+1)];
             Input = Enumerable.Range(0, UserIn.Length>>1)
                     .Select(x=>Convert.ToByte(UserIn.Substring(x<<1, 2), 16))
                     .ToArray();
