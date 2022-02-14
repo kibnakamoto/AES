@@ -13,8 +13,8 @@ using System.Linq; // for decryption function. Hex string to bytearray
 
 namespace AES
 {
-    // operations of aes256
-    public class OPS_AES256
+    // operations of aes 256, 128, 192
+    public class OPS_AES
     {
         /* ENCRYPTION/DECRYPTION */
         
@@ -110,12 +110,12 @@ namespace AES
         
         /* ENCRYPTION */
         
-        public byte[,] SubBytes(byte[,] b)
+        public byte[,] SubBytes(byte[,] b, byte Nb=4)
         {
             /* seperates hex byte into 2 4 bits and use them as index to
                sub in values as index of s-box */
             for(int r=0;r<4;r++) {
-                for(int c=0;c<4;c++) {
+                for(int c=0;c<Nb;c++) {
                     byte low = (byte)(b[r,c] & 0x0F);
                     byte high = (byte)(b[r,c]>>4);
                     b[r,c] = Sbox[high, low];
@@ -124,7 +124,7 @@ namespace AES
             return b;
         }
         
-        public byte[,] ShiftRows(byte[,] S, byte Nb)
+        public byte[,] ShiftRows(byte[,] S, byte Nb=4)
         {
             // to stop values from overriding, use 2 arrays with the same values
             byte[,] Spre = new byte[4,4];
@@ -251,20 +251,12 @@ namespace AES
             }
             return S;
         }
-    }
-    
-    public class AES256
-    {
-        // AES algorithm size for AES256
-        protected const byte Nb = 4;
-        protected const byte Nr = 14;
-        protected const byte Nk = 8;
-        
-        /* KeyExpansion debugged. */
+                /* KeyExpansion debugged. */
         // KeyExpansion
-        protected uint[] KeyExpansion(byte[] key, uint[] w)
+        protected uint[] KeyExpansion(byte[] key, uint[] w, byte Nb, byte Nk, 
+                                      byte Nr)
         {
-            OPS_AES256 Operation = new OPS_AES256();
+            OPS_AES Operation = new OPS_AES();
             uint temp;
             int i=0;
             do {
@@ -278,12 +270,11 @@ namespace AES
             int[] rcon = new int[11];
             for(int c=1;c<11;c++)
             {
-                rcon[c] = (byte)OPS_AES256.Rcon[c] << 24;
+                rcon[c] = (byte)OPS_AES.Rcon[c] << 24;
             }
             
             while (i < Nb*(Nr+1)) {
                 temp = w[i-1];
-                Console.Write($"i:\t{i}\t" + temp.ToString("x") + "\n");
                 if(i%Nk == 0) { // this part is wrong since 16 mod Nk = 0
                     temp = Operation.SubWord(Operation.RotWord(temp)) ^ (uint)rcon[i/Nk];
                 }
@@ -297,10 +288,9 @@ namespace AES
             return w;
         }
         
-        protected byte[] Cipher(byte[] Input, byte[] output, uint[] w)
+        protected byte[] Cipher(byte[] Input, byte[] output, uint[] w, byte Nb, 
+                                byte Nk, byte Nr)
         {
-            OPS_AES256 Operation = new OPS_AES256();
-            
             // declare state matrix
             byte[,] state = new byte[4, Nb];
             
@@ -310,18 +300,27 @@ namespace AES
                     state[r,c] = Input[r+4*c];
                 }
             }
+            for(int c=0;c<4;c++) { // see key schedule
+                Console.WriteLine(w[c].ToString("x")); // correct
+            }
+            // Operation.SubBytes(state);
+            for(int r=0;r<4;r++)
+            {
+                for(int c=0;c<Nb;c++) // wrong
+                    Console.Write(state[r,c].ToString("x")); // 63cab7040953d051cd60e0e7ba70e18c
+            }
             
             // call functions to manipulate state matrix
-            Operation.AddRoundKey(state, w, 0);
+            AddRoundKey(state, w, 0);
             for(int round=1;round<Nr-1;round++) {
-                Operation.SubBytes(state);
-                Operation.ShiftRows(state, Nb);
-                Operation.MixColumns(state, Nb);
-                Operation.AddRoundKey(state, w, round);
+                // SubBytes(state);
+                // ShiftRows(state);
+                // MixColumns(state, Nb);
+                // AddRoundKey(state, w, round);
             }
-            Operation.SubBytes(state);
-            Operation.ShiftRows(state, Nb);
-            Operation.AddRoundKey(state, w, Nr);
+            // SubBytes(state);
+            // ShiftRows(state);
+            // AddRoundKey(state, w, Nr);
             
             // copy state array to output
             for(int r=0;r<4;r++) {
@@ -331,38 +330,52 @@ namespace AES
             return output;
         }
         
-        public string Encrypt(string UserIn)
+        public string Encrypt(string UserIn, byte Nb, byte Nk, byte Nr)
         {
-            
             // pads message so that length is a multiple of 16
             // length of output and UserIn.
             int msgLen = (UserIn.Length+((16-UserIn.Length)%16));
             UserIn = UserIn.PadRight(msgLen, '0');
             
             // initialize Input output arrays.
-            byte[] Input = new byte[4*Nb] {0x00, 0x11, 0x22,0x33,0x44,0x55,
+            byte[] Input = new byte[4*Nb];
+            
+            // TEST INPUT
+            byte[] TESTIN = new byte[16] {0x00, 0x11, 0x22,0x33,0x44,0x55,
                                            0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,
                                            0xdd,0xee,0xff};
-            byte[] output = new byte[16];
+            for(int c=0;c<4*Nb;c++) {
+                Input[c] = TESTIN[c];
+            }
+            /*    TEST INPUT END    */
+            
+            byte[] output = new byte[4*Nb];
             uint[] w = new uint[Nb*(Nr+1)]; // key schedule
-            byte[] key = new byte[4*8]
+            byte[] key = new byte[4*Nk];
             // FIPS 197 Cipher test vector key
-                // {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c, 
-                // 0x0d,0x0e,0x0f,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,
-                // 0x1a,0x1b,0x1c,0x1d,0x1e,0x1f};
+            byte[] TESTKEY = new byte[4*8]
+                {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c, 
+                0x0d,0x0e,0x0f,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,
+                0x1a,0x1b,0x1c,0x1d,0x1e,0x1f};
+            for(int c=0;c<4*Nk;c++) {
+                key[c] = TESTKEY[c];
+            }
+            
+            /* TEST KEY END */
+            
             //  FIPS 197 KeyExpansion test vector key
-             {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae,
-              0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61,
-              0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
+            //  {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae,
+            //   0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61,
+            //   0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
             /* my key, this key changes based on input
-            key = Operation.CreateKey(UserIn); */
+            key = CreateKey(UserIn); */
             
             // append user input to single-dimentional array
             // Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             
             // call KeyExpansion and Cipher function
-            KeyExpansion(key, w);
-            Cipher(Input, output, w);
+            KeyExpansion(key, w, Nb, Nk, Nr);
+            Cipher(Input, output, w, Nb, Nk, Nr);
             
             // convert output array to hex string
             StringBuilder hex = new StringBuilder(output.Length<<1);
@@ -373,26 +386,25 @@ namespace AES
             return hex.ToString();
         }
         
-        protected byte[] InvCipher(byte[] Input, byte[] output, uint[] w)
+        protected byte[] InvCipher(byte[] Input, byte[] output, uint[] w, 
+                                   byte Nb, byte Nk, byte Nr)
         {
-            OPS_AES256 Operation = new OPS_AES256();
-            
             byte[,] state = new byte[4,Nb];
             for(int r=0;r<4;r++) {
                 for(int c=0;c<Nb;c++) {
                     state[r,c] = Input[r+4*c];
                 }
             }
-            Operation.AddRoundKey(state, w, Nr);
+            AddRoundKey(state, w, Nr);
             for(int round=Nr-1;round>1;round--) {
-                Operation.InvShiftRows(state);
-                Operation.InvSubBytes(state);
-                Operation.AddRoundKey(state, w, round);
-                Operation.InvMixColumns(state);
+                InvShiftRows(state);
+                InvSubBytes(state);
+                AddRoundKey(state, w, round);
+                InvMixColumns(state);
             }
-            Operation.InvShiftRows(state);
-            Operation.InvSubBytes(state);
-            Operation.AddRoundKey(state, w, 0);
+            InvShiftRows(state);
+            InvSubBytes(state);
+            AddRoundKey(state, w, 0);
             
             for(int r=0;r<4;r++) {
                 for(int c=0;c<Nb;c++) {
@@ -402,7 +414,7 @@ namespace AES
             return output;
         }
         
-        public string Decrypt(string UserIn, byte[] key)
+        public string Decrypt(string UserIn, byte[] key, byte Nb, byte Nk, byte Nr)
         {
             // declare single-dimentional arrays
             byte[] output = new byte[4*Nb];
@@ -413,9 +425,65 @@ namespace AES
                     .ToArray();
             
             // create key schedule using given key and de-Cipher
-            KeyExpansion(key, w);
-            InvCipher(Input, output, w);
+            KeyExpansion(key, w, Nb, Nk, Nr);
+            InvCipher(Input, output, w, Nb, Nk, Nr);
             return System.Text.Encoding.Default.GetString(output);
         }
+
     }
+    
+    public class AES128
+    {
+        // AES algorithm size for AES256
+        protected const byte Nb = 4;
+        protected const byte Nr = 10;
+        protected const byte Nk = 4;
+        public string Encrypt(string UserIn)
+        {
+            OPS_AES Operation = new OPS_AES();
+            return Operation.Encrypt(UserIn, Nb, Nk, Nr);
+        }
+        public string Decrypt(string UserIn, byte[] key)
+        {
+            OPS_AES Operation = new OPS_AES();
+            return Operation.Decrypt(UserIn, key, Nb, Nk, Nr);
+        }
+    }
+
+    public class AES192
+    {
+        // AES algorithm size for AES256
+        protected const byte Nb = 4;
+        protected const byte Nr = 12;
+        protected const byte Nk = 6;
+        public string Encrypt(string UserIn)
+        {
+            OPS_AES Operation = new OPS_AES();
+            return Operation.Encrypt(UserIn, Nb, Nk, Nr);
+        }
+        public string Decrypt(string UserIn, byte[] key)
+        {
+            OPS_AES Operation = new OPS_AES();
+            return Operation.Decrypt(UserIn, key, Nb, Nk, Nr);
+        }
+    }
+
+    public class AES256
+    {
+        // AES algorithm size for AES256
+        protected const byte Nb = 4;
+        protected const byte Nr = 14;
+        protected const byte Nk = 8;
+        public string Encrypt(string UserIn)
+        {
+            OPS_AES Operation = new OPS_AES();
+            return Operation.Encrypt(UserIn, Nb, Nk, Nr);
+        }
+        public string Decrypt(string UserIn, byte[] key)
+        {
+            OPS_AES Operation = new OPS_AES();
+            return Operation.Decrypt(UserIn, key, Nb, Nk, Nr);
+        }
+    }
+    
 }
