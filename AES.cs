@@ -288,8 +288,8 @@ namespace AES
             return w;
         }
         
-        protected byte[] Cipher(byte[] Input, byte[] output, uint[] w, byte Nb, 
-                                byte Nk, byte Nr)
+        protected byte[] Cipher(byte[] Input, byte[] output, uint[] w, byte Nb,
+                                byte Nk, byte Nr, byte[] key)
         {
             // declare state matrix
             byte[,] state = new byte[4, Nb];
@@ -300,32 +300,27 @@ namespace AES
                     state[r,c] = Input[r+4*c];
                 }
             }
-            for(int c=0;c<4;c++) { // see key schedule
-                Console.WriteLine(w[c].ToString("x")); // correct
-            }
-            // Operation.SubBytes(state);
-            for(int r=0;r<4;r++)
-            {
-                for(int c=0;c<Nb;c++) // wrong
-                    Console.Write(state[r,c].ToString("x")); // 63cab7040953d051cd60e0e7ba70e18c
-            }
             
             // call functions to manipulate state matrix
             AddRoundKey(state, w, 0);
-            for(int round=1;round<Nr-1;round++) {
-                // SubBytes(state);
-                // ShiftRows(state);
-                // MixColumns(state, Nb);
-                // AddRoundKey(state, w, round);
+            for(int round=1;round<Nr;round++) {
+                SubBytes(state);
+                ShiftRows(state);
+                MixColumns(state, Nb);
+                AddRoundKey(state, w, round);
             }
-            // SubBytes(state);
-            // ShiftRows(state);
-            // AddRoundKey(state, w, Nr);
+            SubBytes(state);
+            ShiftRows(state);
+            AddRoundKey(state, w, Nr);
             
             // copy state array to output
             for(int r=0;r<4;r++) {
                 for(int c=0;c<Nb;c++)
                     output[r+4*c] = state[r,c];
+            }
+            Console.Write("\nouput:\t");
+            foreach(byte c in output) {
+                Console.Write(c.ToString("x")); // correct, answer = 1d arr
             }
             return output;
         }
@@ -363,10 +358,6 @@ namespace AES
             
             /* TEST KEY END */
             
-            //  FIPS 197 KeyExpansion test vector key
-            //  {0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae,
-            //   0xf0, 0x85, 0x7d, 0x77, 0x81, 0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61,
-            //   0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4};
             /* my key, this key changes based on input
             key = CreateKey(UserIn); */
             
@@ -375,7 +366,7 @@ namespace AES
             
             // call KeyExpansion and Cipher function
             KeyExpansion(key, w, Nb, Nk, Nr);
-            Cipher(Input, output, w, Nb, Nk, Nr);
+            Cipher(Input, output, w, Nb, Nk, Nr, key);
             
             // convert output array to hex string
             StringBuilder hex = new StringBuilder(output.Length<<1);
@@ -422,7 +413,7 @@ namespace AES
             uint[] w = new uint[Nb*(Nr+1)];
             Input = Enumerable.Range(0, UserIn.Length>>1)
                     .Select(x=>Convert.ToByte(UserIn.Substring(x<<1, 2), 16))
-                    .ToArray();
+                    .ToArray(); // converts string hex to bytearray
             
             // create key schedule using given key and de-Cipher
             KeyExpansion(key, w, Nb, Nk, Nr);
