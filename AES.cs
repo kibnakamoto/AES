@@ -318,10 +318,6 @@ namespace AES
                 for(int c=0;c<Nb;c++)
                     output[r+4*c] = state[r,c];
             }
-            Console.Write("\nouput:\t");
-            foreach(byte c in output) {
-                Console.Write(c.ToString("x")); // correct, answer = 1d arr
-            }
             return output;
         }
         
@@ -387,7 +383,7 @@ namespace AES
                 }
             }
             AddRoundKey(state, w, Nr);
-            for(int round=Nr-1;round>1;round--) {
+            for(int round=Nr-1;round>0;round--) {
                 InvShiftRows(state);
                 InvSubBytes(state);
                 AddRoundKey(state, w, round);
@@ -398,9 +394,8 @@ namespace AES
             AddRoundKey(state, w, 0);
             
             for(int r=0;r<4;r++) {
-                for(int c=0;c<Nb;c++) {
+                for(int c=0;c<Nb;c++)
                     output[r+4*c] = state[r,c];
-                }
             }
             return output;
         }
@@ -412,7 +407,7 @@ namespace AES
             byte[] Input = new byte[4*Nb];
             uint[] w = new uint[Nb*(Nr+1)];
             Input = Enumerable.Range(0, UserIn.Length>>1)
-                    .Select(x=>Convert.ToByte(UserIn.Substring(x<<1, 2), 16))
+                    .Select(x=>Convert.ToByte(UserIn.Substring(x<<1, 2), 16)) 
                     .ToArray(); // converts string hex to bytearray
             
             // create key schedule using given key and de-Cipher
