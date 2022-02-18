@@ -1,7 +1,7 @@
 /*
 *  Author: Taha Canturk
 *   Github: Kibnakamoto
-*    Repisotory: AES256
+*    Repisotory: AES
 *     Start Date: Jan 7, 2022
 *       Finalized: N/A
 */
@@ -78,11 +78,11 @@ namespace AES
             0x20, 0x40, 0x80, 0x1b, 0x36};
         
         // salt for generating key. Salt creates a safer key
-        protected static readonly byte[] Salt = new byte[] {
-            0xf4, 0x32, 0x10 , 0x43, 0xff, 0x5a, 0xae, 0x56};
+        private static readonly byte[] Salt = new byte[] {
+            0xf4, 0x32, 0x10, 0x43, 0xff, 0x5a, 0xae, 0x56};
         
         // generate key with salt
-        public byte[] CreateKey(string input, int keyBytes = 32)
+        public byte[] CreateKey(string input, int keyBytes)
         {
             const int Iterations = 300;
             var keyGenerator = new Rfc2898DeriveBytes(input, Salt, Iterations);
@@ -110,7 +110,7 @@ namespace AES
         
         /* ENCRYPTION */
         
-        public byte[,] SubBytes(byte[,] b, byte Nb=4)
+        public byte[,] SubBytes(byte[,] b, byte Nb)
         {
             /* seperates hex byte into 2 4 bits and use them as index to
                sub in values as index of s-box */
@@ -124,7 +124,7 @@ namespace AES
             return b;
         }
         
-        public byte[,] ShiftRows(byte[,] S, byte Nb=4)
+        public byte[,] ShiftRows(byte[,] S, byte Nb)
         {
             // to stop values from overriding, use 2 arrays with the same values
             byte[,] Spre = new byte[4,4];
@@ -304,13 +304,13 @@ namespace AES
             // call functions to manipulate state matrix
             AddRoundKey(state, w, 0);
             for(int round=1;round<Nr;round++) {
-                SubBytes(state);
-                ShiftRows(state);
+                SubBytes(state, Nb);
+                ShiftRows(state, Nb);
                 MixColumns(state, Nb);
                 AddRoundKey(state, w, round);
             }
-            SubBytes(state);
-            ShiftRows(state);
+            SubBytes(state, Nb);
+            ShiftRows(state, Nb);
             AddRoundKey(state, w, Nr);
             
             // copy state array to output
@@ -330,35 +330,15 @@ namespace AES
             
             // initialize Input output arrays.
             byte[] Input = new byte[4*Nb];
-            
-            // TEST INPUT
-            byte[] TESTIN = new byte[16] {0x00, 0x11, 0x22,0x33,0x44,0x55,
-                                           0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,
-                                           0xdd,0xee,0xff};
-            for(int c=0;c<4*Nb;c++) {
-                Input[c] = TESTIN[c];
-            }
-            /*    TEST INPUT END    */
-            
             byte[] output = new byte[4*Nb];
             uint[] w = new uint[Nb*(Nr+1)]; // key schedule
             byte[] key = new byte[4*Nk];
-            // FIPS 197 Cipher test vector key
-            byte[] TESTKEY = new byte[4*8]
-                {0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c, 
-                0x0d,0x0e,0x0f,0x10,0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,
-                0x1a,0x1b,0x1c,0x1d,0x1e,0x1f};
-            for(int c=0;c<4*Nk;c++) {
-                key[c] = TESTKEY[c];
-            }
+
+            // key changes based on input
+            key = CreateKey(UserIn, 4*Nk); // uses salt
             
-            /* TEST KEY END */
-            
-            /* my key, this key changes based on input
-            key = CreateKey(UserIn); */
-            
-            // append user input to single-dimentional array
-            // Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
+            // append user input to 1-dimentional array
+            Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             
             // call KeyExpansion and Cipher function
             KeyExpansion(key, w, Nb, Nk, Nr);
