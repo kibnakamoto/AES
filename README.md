@@ -7,7 +7,7 @@ Project finish date: Feb 17, 2022
 
 Email: taha.ez.ca@gmail.com
 
-aes256 encryption method in c#. this project just started.
+All AES Encryption/Decryption methods in c#.
 
 this implementation uses salt.
 
