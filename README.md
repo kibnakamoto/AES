@@ -3,7 +3,7 @@ By Taha Canturk(Kibnakamoto)
 
 Project start date: Jan 7, 2022
 
-Project finish date: N/A
+Project finish date: Feb 17, 2022
 
 Email: taha.ez.ca@gmail.com
 
