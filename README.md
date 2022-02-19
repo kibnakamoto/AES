@@ -9,6 +9,8 @@ Email: taha.ez.ca@gmail.com
 
 All AES Encryption/Decryption methods in c#.
 
+Works no matter the length of message, if message isn't a multiple of 16, then pads user input with zeros.
+
 this implementation uses salt.
 
 GF(2) = XOR. xor in the Galois Field is adding.
