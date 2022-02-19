@@ -3,7 +3,7 @@
 *   Github: Kibnakamoto
 *    Repisotory: AES
 *     Start Date: Jan 7, 2022
-*       Finalized: N/A
+*       Finalized: Feb 17, 2022
 */
 
 using System;
@@ -391,8 +391,10 @@ namespace AES
                                            byte Nk, byte Nr)
         {
             // pads message so that length is a multiple of 16
-            int msgLen = UserIn.Length + (16-UserIn.Length)%16; // why the fuck is it wrong
-            Console.Write(msgLen); // define the fucking MultiBlockProcessDec
+            int msgLen = UserIn.Length + 16-(UserIn.Length)%16;
+            if(UserIn.Length%16 == 0) {
+                msgLen -=16;
+            }
             UserIn = UserIn.PadRight(msgLen, '0');
             string[] newInput = new string[msgLen/16];
             int k=-1;
@@ -408,6 +410,25 @@ namespace AES
                 FVal += Encrypt(newInput[c], key, Nb, Nk, Nr);
             }
             return FVal;
+        }
+        public string MultiBlockProcessDec(string UserIn, byte[] key, byte Nb,
+                                   byte Nk, byte Nr)
+        {
+            string[] newInput = new string[UserIn.Length/32];
+            int k=-1;
+            string FVal = "";
+            // seperate message into blocks of 32 bytes
+            for(int c=0;c<UserIn.Length;c+=32) {
+                k++;
+                if(k < UserIn.Length/32) {
+                    newInput[k] = UserIn.Substring(c, 32);
+                }
+            }
+            for(int c=0;c<UserIn.Length/32;c++) {
+                FVal += Decrypt(newInput[c], key, Nb, Nk, Nr);
+            }
+            
+            return null;
         }
     }
     
@@ -425,7 +446,7 @@ namespace AES
         public string Decrypt(string UserIn, byte[] key)
         {
             OPS_AES Operation = new OPS_AES();
-            return Operation.Decrypt(UserIn, key, Nb, Nk, Nr);
+            return Operation.MultiBlockProcessDec(UserIn, key, Nb, Nk, Nr);
         }
     }
 
@@ -443,7 +464,7 @@ namespace AES
         public string Decrypt(string UserIn, byte[] key)
         {
             OPS_AES Operation = new OPS_AES();
-            return Operation.Decrypt(UserIn, key, Nb, Nk, Nr);
+            return Operation.MultiBlockProcessDec(UserIn, key, Nb, Nk, Nr);
         }
     }
 
@@ -461,7 +482,7 @@ namespace AES
         public string Decrypt(string UserIn, byte[] key)
         {
             OPS_AES Operation = new OPS_AES();
-            return Operation.Decrypt(UserIn, key, Nb, Nk, Nr);
+            return Operation.MultiBlockProcessDec(UserIn, key, Nb, Nk, Nr);
         }
     }
 }
