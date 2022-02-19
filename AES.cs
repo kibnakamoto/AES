@@ -417,6 +417,7 @@ namespace AES
             string[] newInput = new string[UserIn.Length/32];
             int k=-1;
             string FVal = "";
+            
             // seperate message into blocks of 32 bytes
             for(int c=0;c<UserIn.Length;c+=32) {
                 k++;
@@ -424,6 +425,7 @@ namespace AES
                     newInput[k] = UserIn.Substring(c, 32);
                 }
             }
+            Console.WriteLine(newInput[0] + " " + newInput[1]);
             for(int c=0;c<UserIn.Length/32;c++) {
                 FVal += Decrypt(newInput[c], key, Nb, Nk, Nr);
             }
