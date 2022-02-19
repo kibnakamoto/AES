@@ -289,7 +289,7 @@ namespace AES
         }
         
         protected byte[] Cipher(byte[] Input, byte[] output, uint[] w, byte Nb,
-                                byte Nk, byte Nr, byte[] key)
+                                byte Nk, byte Nr)
         {
             // declare state matrix
             byte[,] state = new byte[4, Nb];
@@ -321,28 +321,20 @@ namespace AES
             return output;
         }
         
-        public string Encrypt(string UserIn, byte Nb, byte Nk, byte Nr)
+        public string Encrypt(string UserIn, byte[] key, byte Nb, byte Nk,
+                              byte Nr)
         {
-            // pads message so that length is a multiple of 16
-            // length of output and UserIn.
-            int msgLen = (UserIn.Length+((16-UserIn.Length)%16));
-            UserIn = UserIn.PadRight(msgLen, '0');
-            
-            // initialize Input output arrays.
+            // declare arrays.
             byte[] Input = new byte[4*Nb];
             byte[] output = new byte[4*Nb];
             uint[] w = new uint[Nb*(Nr+1)]; // key schedule
-            byte[] key = new byte[4*Nk];
 
-            // key changes based on input
-            key = CreateKey(UserIn, 4*Nk); // uses salt
-            
             // append user input to 1-dimentional array
             Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             
             // call KeyExpansion and Cipher function
             KeyExpansion(key, w, Nb, Nk, Nr);
-            Cipher(Input, output, w, Nb, Nk, Nr, key);
+            Cipher(Input, output, w, Nb, Nk, Nr);
             
             // convert output array to hex string
             StringBuilder hex = new StringBuilder(output.Length<<1);
@@ -395,7 +387,28 @@ namespace AES
             InvCipher(Input, output, w, Nb, Nk, Nr);
             return System.Text.Encoding.Default.GetString(output);
         }
-
+        public string MultiBlockProcessEnc(string UserIn, byte[] key, byte Nb,
+                                           byte Nk, byte Nr)
+        {
+            // pads message so that length is a multiple of 16
+            int msgLen = UserIn.Length + (16-UserIn.Length)%16; // why the fuck is it wrong
+            Console.Write(msgLen); // define the fucking MultiBlockProcessDec
+            UserIn = UserIn.PadRight(msgLen, '0');
+            string[] newInput = new string[msgLen/16];
+            int k=-1;
+            string FVal = "";
+            // seperate message into blocks of 16
+            for(int c=0;c<msgLen;c+=16) {
+                k++;
+                if(k < msgLen/16) {
+                    newInput[k] = UserIn.Substring(c, 16);
+                }
+            }
+            for(int c=0;c<msgLen/16;c++) {
+                FVal += Encrypt(newInput[c], key, Nb, Nk, Nr);
+            }
+            return FVal;
+        }
     }
     
     public class AES128
@@ -404,10 +417,10 @@ namespace AES
         protected const byte Nb = 4;
         protected const byte Nr = 10;
         protected const byte Nk = 4;
-        public string Encrypt(string UserIn)
+        public string Encrypt(string UserIn, byte[] key)
         {
             OPS_AES Operation = new OPS_AES();
-            return Operation.Encrypt(UserIn, Nb, Nk, Nr);
+            return Operation.MultiBlockProcessEnc(UserIn, key, Nb, Nk, Nr);
         }
         public string Decrypt(string UserIn, byte[] key)
         {
@@ -422,10 +435,10 @@ namespace AES
         protected const byte Nb = 4;
         protected const byte Nr = 12;
         protected const byte Nk = 6;
-        public string Encrypt(string UserIn)
+        public string Encrypt(string UserIn, byte[] key)
         {
             OPS_AES Operation = new OPS_AES();
-            return Operation.Encrypt(UserIn, Nb, Nk, Nr);
+            return Operation.MultiBlockProcessEnc(UserIn, key, Nb, Nk, Nr);
         }
         public string Decrypt(string UserIn, byte[] key)
         {
@@ -440,10 +453,10 @@ namespace AES
         protected const byte Nb = 4;
         protected const byte Nr = 14;
         protected const byte Nk = 8;
-        public string Encrypt(string UserIn)
+        public string Encrypt(string UserIn, byte[] key)
         {
             OPS_AES Operation = new OPS_AES();
-            return Operation.Encrypt(UserIn, Nb, Nk, Nr);
+            return Operation.MultiBlockProcessEnc(UserIn, key, Nb, Nk, Nr);
         }
         public string Decrypt(string UserIn, byte[] key)
         {
@@ -451,5 +464,4 @@ namespace AES
             return Operation.Decrypt(UserIn, key, Nb, Nk, Nr);
         }
     }
-    
 }
