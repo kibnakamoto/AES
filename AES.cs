@@ -430,7 +430,7 @@ namespace AES
                 FVal += Decrypt(newInput[c], key, Nb, Nk, Nr);
             }
             
-            return null;
+            return FVal;
         }
     }
     
