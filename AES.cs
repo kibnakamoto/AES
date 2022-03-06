@@ -435,7 +435,7 @@ namespace AES
     
     public class AES128
     {
-        // AES algorithm size for AES256
+        // AES algorithm size for AES128
         protected const byte Nb = 4;
         protected const byte Nr = 10;
         protected const byte Nk = 4;
@@ -453,7 +453,7 @@ namespace AES
 
     public class AES192
     {
-        // AES algorithm size for AES256
+        // AES algorithm size for AES192
         protected const byte Nb = 4;
         protected const byte Nr = 12;
         protected const byte Nk = 6;
