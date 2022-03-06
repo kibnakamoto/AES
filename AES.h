@@ -305,7 +305,7 @@ class AES
             }
             
         public:
-            std::string Encrypt(std::string user_in,uint8_t* key, uint8_t Nb,
+            std::string encrypt(std::string user_in,uint8_t* key, uint8_t Nb,
                                 uint8_t Nk, uint8_t Nr)
             {
                 // declare arrays
@@ -330,75 +330,108 @@ class AES
                 }
             	return ss.str();
             }
-
-//         public string Encrypt(string UserIn, byte[] key, byte Nb, byte Nk,
-//                               byte Nr)
+            
+        protected:
+            uint8_t* invCipher(uint8_t* input, uint8_t* output, uint32_t* w,
+                               uint8_t Nb, uint8_t Nk, uint8_t Nr)
+            {
+                uint8_t state_arr[4][Nb];
+                uint8_t** state;
+                for(int r=0;r<4;r++) {
+                    for(int c=0;c<Nb;c++)
+                        state_arr[r][c] = input[r+4*c];
+                }
+                memcpy(state, state_arr, sizeof(uint8_t)<<3);
+                addroundkey(state, w, Nr, Nb);
+                for(int rnd=0;rnd>0;rnd--) {
+                    inv_shiftrows(state, Nb);
+                    inv_subBytes(state, Nb);
+                    inv_mixcolumns(state, Nb);
+                }
+                inv_shiftrows(state, Nb);
+                inv_subBytes(state, Nb);
+                addroundkey(state, w, 0, Nb);
+                
+                // 2d array to 1d array
+                for(int r=0;r<4;r++) {
+                    for(int c=0;c<Nb;c++)
+                        output[r+4*c] = state[r][c];
+                }
+                return output;
+            }
+        public:
+            std::string decrypt(std::string user_in, uint8_t* key, uint8_t Nb,
+                                uint8_t Nk, uint8_t Nr)
+            {
+                // declare single-dimentional arrays
+                uint8_t output[4*Nb];
+                uint8_t input[4*Nb];
+                uint32_t w[Nb*(Nr+1)];
+                std::stringstream conv;
+                for(int c=0;c<user_in.length();c+=2) {
+                    conv << std::hex << user_in.substr(c,2);
+                    int32_t uint8;
+                    conv >> uint8;
+                    input[c/2] = uint8 & 0xffU;
+                    conv.str(std::string());
+                    conv.clear();
+                }
+                // create key schedule and decrypt
+                keyExpansion(key, w, Nb, Nk, Nr);
+                invCipher(input, output, w, Nb, Nk, Nr);
+                std::string str;
+                for(int c=0;c<4*Nb;c++) {
+                    str += output[c];
+                }
+                return str;
+            }
+        //         public string MultiBlockProcessEnc(string UserIn, byte[] key, byte Nb,
+//                                           byte Nk, byte Nr)
 //         {
-//             // declare arrays.
-//             byte[] Input = new byte[4*Nb];
-//             byte[] output = new byte[4*Nb];
-//             uint[] w = new uint[Nb*(Nr+1)]; // key schedule
-
-//             // append user input to 1-dimentional array
-//             Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
-            
-//             // call KeyExpansion and Cipher function
-//             KeyExpansion(key, w, Nb, Nk, Nr);
-//             Cipher(Input, output, w, Nb, Nk, Nr);
-            
-//             // convert output array to hex string
-//             StringBuilder hex = new StringBuilder(output.Length<<1);
-//             foreach(byte c in output)
-//             {
-//                   hex.AppendFormat("{0:x2}", c);
+//             // pads message so that length is a multiple of 16
+//             int msgLen = UserIn.Length + 16-(UserIn.Length)%16;
+//             if(UserIn.Length%16 == 0) {
+//                 msgLen -=16;
 //             }
-//             return hex.ToString();
-//         }
-        
-//         protected byte[] InvCipher(byte[] Input, byte[] output, uint[] w, 
-//                                   byte Nb, byte Nk, byte Nr)
-//         {
-//             byte[,] state = new byte[4,Nb];
-//             for(int r=0;r<4;r++) {
-//                 for(int c=0;c<Nb;c++) {
-//                     state[r,c] = Input[r+4*c];
+//             UserIn = UserIn.PadRight(msgLen, '0');
+//             string[] newInput = new string[msgLen/16];
+//             int k=-1;
+//             string FVal = "";
+//             // seperate message into blocks of 16
+//             for(int c=0;c<msgLen;c+=16) {
+//                 k++;
+//                 if(k < msgLen/16) {
+//                     newInput[k] = UserIn.Substring(c, 16);
 //                 }
 //             }
-//             AddRoundKey(state, w, Nr);
-//             for(int round=Nr-1;round>0;round--) {
-//                 InvShiftRows(state);
-//                 InvSubBytes(state);
-//                 AddRoundKey(state, w, round);
-//                 InvMixColumns(state);
+//             for(int c=0;c<msgLen/16;c++) {
+//                 FVal += Encrypt(newInput[c], key, Nb, Nk, Nr);
 //             }
-//             InvShiftRows(state);
-//             InvSubBytes(state);
-//             AddRoundKey(state, w, 0);
-            
-//             for(int r=0;r<4;r++) {
-//                 for(int c=0;c<Nb;c++)
-//                     output[r+4*c] = state[r,c];
-//             }
-//             return output;
+//             return FVal;
 //         }
-        
-//         public string Decrypt(string UserIn, byte[] key, byte Nb, byte Nk, byte Nr)
+//         public string MultiBlockProcessDec(string UserIn, byte[] key, byte Nb,
+//                                   byte Nk, byte Nr)
 //         {
-//             // declare single-dimentional arrays
-//             byte[] output = new byte[4*Nb];
-//             byte[] Input = new byte[4*Nb];
-//             uint[] w = new uint[Nb*(Nr+1)];
-//             Input = Enumerable.Range(0, UserIn.Length>>1)
-//                     .Select(x=>Convert.ToByte(UserIn.Substring(x<<1, 2), 16)) 
-//                     .ToArray(); // converts string hex to bytearray
+//             string[] newInput = new string[UserIn.Length/32];
+//             int k=-1;
+//             string FVal = "";
             
-//             // create key schedule using given key and de-Cipher
-//             KeyExpansion(key, w, Nb, Nk, Nr);
-//             InvCipher(Input, output, w, Nb, Nk, Nr);
-//             return System.Text.Encoding.Default.GetString(output);
+//             // seperate message into blocks of 32 bytes
+//             for(int c=0;c<UserIn.Length;c+=32) {
+//                 k++;
+//                 if(k < UserIn.Length/32) {
+//                     newInput[k] = UserIn.Substring(c, 32);
+//                 }
+//             }
+//             Console.WriteLine(newInput[0] + " " + newInput[1]);
+//             for(int c=0;c<UserIn.Length/32;c++) {
+//                 FVal += Decrypt(newInput[c], key, Nb, Nk, Nr);
+//             }
+            
+//             return FVal;
 //         }
+//     }
 
-            
     };
     
     class AES128
