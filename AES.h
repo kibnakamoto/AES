@@ -9,6 +9,8 @@
 #include <iostream>
 #include <stdint.h>
 #include <sstream>
+#include <iomanip>
+#include <string.h>
 
 class AES
 {
