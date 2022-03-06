@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <stdint.h>
+#include <sstream>
 
 class AES
 {
@@ -96,7 +97,7 @@ class AES
             }
             
             /* ENCRYPTION */
-            uint8_t** subbytes(uint8_t** b, uint8_t Nb)
+            uint8_t** subBytes(uint8_t** b, uint8_t Nb)
             {
                 /* seperates hex byte into 2 4 bits and use them as index to
                    sub in values as index of s-box */
@@ -182,7 +183,7 @@ class AES
         
             /* DECRYPTION */
             
-            uint8_t** inv_subbytes(uint8_t** state, uint8_t Nb)
+            uint8_t** inv_subBytes(uint8_t** state, uint8_t Nb)
             {
                 for(int r=0;r<4;r++) {
                     for(int c=0;c<Nb;c++) {
@@ -242,7 +243,6 @@ class AES
            uint32_t* keyExpansion(uint8_t* key, uint32_t* w, uint8_t Nb, 
                                   uint8_t Nk, uint8_t Nr)
             {
-                OPS_AES Operation = OPS_AES();
                 uint32_t temp;
                 int i=0;
                 do {
@@ -260,52 +260,145 @@ class AES
                 while(i<Nb*(Nr+1)) {
                 temp = w[i-1];
                 if(i%Nk == 0) {
-                    temp = Operation.SubWord(Operation.RotWord(temp)) ^ (uint)rcon[i/Nk];
+                    temp = subword(rotword(temp)) ^ (uint32_t)tmp_rcon[i/Nk];
                 }
                 else if(Nk>6 && i%Nk == 4) {
-                    temp = Operation.SubWord(temp);
+                    temp = subword(temp);
                 }
                 w[i] = temp ^ w[i-Nk];
                 i++;
-                    
                 }
+                return w;
             }
+            
+            uint8_t* cipher(uint8_t* input, uint8_t* output, uint32_t* w, 
+                            uint8_t Nb, uint8_t Nk, uint8_t Nr)
+            {
+                // declare state matrix
+                uint8_t state_arr[4][Nb];
+                uint8_t** state;
+                
+                // put 1-dimentional array values to a 2-dimentional matrix
+                for(int r=0;r<4;r++) {
+                    for(int c=0;c<Nb;c++)
+                        state[r][c] = input[r+4*c];
+                }
+                memcpy(state,state_arr,sizeof(uint8_t)<<3);
+                // call functions to manipulate state matrix
+                addroundkey(state, w, 0, Nb);
+                for(int rnd=1;rnd<Nr;rnd++) {
+                    subBytes(state, Nb);
+                    shiftrows(state, Nb);
+                    mixcolumns(state, Nb);
+                    addroundkey(state, w, rnd, Nb);
+                }
+                subBytes(state, Nb);
+                shiftrows(state, Nb);
+                addroundkey(state, w, Nr, Nb);
+            
+                // copy state array to output
+                for(int r=0;r<4;r++) {
+                    for(int c=0;c<Nb;c++)
+                        output[r+4*c] = state[r][c];
+                }
+                return output;
+            }
+            
+        public:
+            std::string Encrypt(std::string user_in,uint8_t* key, uint8_t Nb,
+                                uint8_t Nk, uint8_t Nr)
+            {
+                // declare arrays
+                uint8_t input[4*Nb];
+                uint8_t output[4*Nb];
+                uint32_t w[Nb*(Nr+1)]; // key schedule
+                
+                // append user input to 1-dimentional array
+                for(int c=0;c<4*Nb;c++) {
+                    input[c] = user_in[c];
+                }
+                
+                // call KeyExpansion and Cipher function
+                keyExpansion(key, w, Nb, Nk, Nr);
+                cipher(input, output, w, Nb, Nk, Nr);
+
+                // convert output array to hex string
+                std::stringstream ss;
+                for (int c=0;c<4*Nb;c++)
+                {
+                    ss << std::setfill('0') << std::setw(2) << std::hex << output[c];
+                }
+            	return ss.str();
+            }
+
+//         public string Encrypt(string UserIn, byte[] key, byte Nb, byte Nk,
+//                               byte Nr)
 //         {
-//             OPS_AES Operation = new OPS_AES();
-//             uint temp;
-//             int i=0;
-//             do {
-//                 w[i] = (uint)((key[4*i]<<24) | (key[4*i+1]<<16) |
-//                              (key[4*i+2]<<8) | key[4*i+3]);
-//                 i++;
-//             } while(i < Nk);
-//             i=Nk;
+//             // declare arrays.
+//             byte[] Input = new byte[4*Nb];
+//             byte[] output = new byte[4*Nb];
+//             uint[] w = new uint[Nb*(Nr+1)]; // key schedule
+
+//             // append user input to 1-dimentional array
+//             Input = System.Text.Encoding.ASCII.GetBytes(UserIn);
             
-//             // Rcon values. initialize twice so it doesn't override
-//             int[] rcon = new int[11];
-//             for(int c=1;c<11;c++)
+//             // call KeyExpansion and Cipher function
+//             KeyExpansion(key, w, Nb, Nk, Nr);
+//             Cipher(Input, output, w, Nb, Nk, Nr);
+            
+//             // convert output array to hex string
+//             StringBuilder hex = new StringBuilder(output.Length<<1);
+//             foreach(byte c in output)
 //             {
-//                 rcon[c] = (byte)OPS_AES.Rcon[c] << 24;
+//                   hex.AppendFormat("{0:x2}", c);
 //             }
-            
-//             while (i < Nb*(Nr+1)) {
-//                 temp = w[i-1];
-//                 if(i%Nk == 0) { // this part is wrong since 16 mod Nk = 0
-//                     temp = Operation.SubWord(Operation.RotWord(temp)) ^ (uint)rcon[i/Nk];
+//             return hex.ToString();
+//         }
+        
+//         protected byte[] InvCipher(byte[] Input, byte[] output, uint[] w, 
+//                                   byte Nb, byte Nk, byte Nr)
+//         {
+//             byte[,] state = new byte[4,Nb];
+//             for(int r=0;r<4;r++) {
+//                 for(int c=0;c<Nb;c++) {
+//                     state[r,c] = Input[r+4*c];
 //                 }
-//                 else if(Nk>6 && i%Nk == 4) {
-//                     temp = Operation.SubWord(temp);
-//                 }
-//                 w[i] = temp ^ w[i-Nk];
-//                 i++;
 //             }
+//             AddRoundKey(state, w, Nr);
+//             for(int round=Nr-1;round>0;round--) {
+//                 InvShiftRows(state);
+//                 InvSubBytes(state);
+//                 AddRoundKey(state, w, round);
+//                 InvMixColumns(state);
+//             }
+//             InvShiftRows(state);
+//             InvSubBytes(state);
+//             AddRoundKey(state, w, 0);
             
-//             return w;
+//             for(int r=0;r<4;r++) {
+//                 for(int c=0;c<Nb;c++)
+//                     output[r+4*c] = state[r,c];
+//             }
+//             return output;
+//         }
+        
+//         public string Decrypt(string UserIn, byte[] key, byte Nb, byte Nk, byte Nr)
+//         {
+//             // declare single-dimentional arrays
+//             byte[] output = new byte[4*Nb];
+//             byte[] Input = new byte[4*Nb];
+//             uint[] w = new uint[Nb*(Nr+1)];
+//             Input = Enumerable.Range(0, UserIn.Length>>1)
+//                     .Select(x=>Convert.ToByte(UserIn.Substring(x<<1, 2), 16)) 
+//                     .ToArray(); // converts string hex to bytearray
+            
+//             // create key schedule using given key and de-Cipher
+//             KeyExpansion(key, w, Nb, Nk, Nr);
+//             InvCipher(Input, output, w, Nb, Nk, Nr);
+//             return System.Text.Encoding.Default.GetString(output);
 //         }
 
-
             
-
     };
     
     class AES128
