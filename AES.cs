@@ -425,7 +425,6 @@ namespace AES
                     newInput[k] = UserIn.Substring(c, 32);
                 }
             }
-            Console.WriteLine(newInput[0] + " " + newInput[1]);
             for(int c=0;c<UserIn.Length/32;c++) {
                 FVal += Decrypt(newInput[c], key, Nb, Nk, Nr);
             }
