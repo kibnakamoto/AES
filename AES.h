@@ -403,9 +403,8 @@ class AES
                 if(user_in.length()%16 == 0) {
                     msg_blen-=16;
                 }
-                for(int c=user_in.length();c<msg_blen;c++) {
-                    user_in += "0";
-                }
+                std::stringstream ss;
+                ss << std::setfill('0') << std::setw(msg_blen) << user_in;
                 std::string new_input[msg_blen/16];
                 int32_t k=-1;
                 std::string final_val = "";
@@ -414,7 +413,7 @@ class AES
                 for(int c=0;c<msg_blen;c+=16) {
                     k++;
                     if(k<msg_blen/16) {
-                        new_input[k] = user_in.substr(c,16);
+                        new_input[k] = ss.str().substr(c,16);
                     }
                 }
                 for(int c=0;c<msg_blen/16;c++) {
