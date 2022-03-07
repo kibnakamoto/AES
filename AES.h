@@ -278,19 +278,18 @@ class AES
                             uint8_t Nb, uint8_t Nk, uint8_t Nr)
             {
                 // declare state matrix
-                uint8_t state_arr[4][Nb];
-                uint8_t** state;
+                uint8_t** state = nullptr;
+                state = new uint8_t*[4];
+                for(int r=0;r<4;r++) {
+                    state[r] = new uint8_t[Nb];
+                }
                 // TODO: fix segmentation fault
                 // put 1-dimentional array values to a 2-dimentional matrix
                 for(int r=0;r<4;r++) {
                     for(int c=0;c<Nb;c++)
-                        state_arr[r][c] = input[r+4*c];
+                        state[r][c] = input[r+4*c];
                 }
-                memcpy(state,state_arr,sizeof(uint8_t)<<3);
-                for(int r=0;r<4;r++) {
-                    for(int c=0;c<Nb;c++)
-                    std::cout << state[r][c];
-                }
+                
                 // call functions to manipulate state matrix
                 addroundkey(state, w, 0, Nb);
                 for(int rnd=1;rnd<Nr;rnd++) {
