@@ -8,9 +8,9 @@
 
 #include <iostream>
 #include <stdint.h>
+#include <string.h>
 #include <sstream>
 #include <iomanip>
-#include <string.h>
 
 class AES
 {
@@ -241,15 +241,16 @@ class AES
             }
             
         protected:
-//         // KeyExpansion
-           uint32_t* keyExpansion(uint8_t* key, uint32_t* w, uint8_t Nb, 
+           // KeyExpansion
+           uint32_t* keyExpansion(uint8_t* key, uint32_t* w, uint8_t Nb,
                                   uint8_t Nk, uint8_t Nr)
             {
                 uint32_t temp;
                 int i=0;
                 do {
-                    w[i] = (key[4*i]<<24) | (key[4*i+1]<<16) | (key[4*i+2]<<8) |
+                    w[i] = ((uint32_t)key[4*i]<<24) | (key[4*i+1]<<16) | (key[4*i+2]<<8) |
                            key[4*i+3];
+                    i++;
                 } while(i<Nk);
                 i=Nk;
                 
@@ -279,13 +280,17 @@ class AES
                 // declare state matrix
                 uint8_t state_arr[4][Nb];
                 uint8_t** state;
-                
+                // TODO: fix segmentation fault
                 // put 1-dimentional array values to a 2-dimentional matrix
                 for(int r=0;r<4;r++) {
                     for(int c=0;c<Nb;c++)
-                        state[r][c] = input[r+4*c];
+                        state_arr[r][c] = input[r+4*c];
                 }
                 memcpy(state,state_arr,sizeof(uint8_t)<<3);
+                for(int r=0;r<4;r++) {
+                    for(int c=0;c<Nb;c++)
+                    std::cout << state[r][c];
+                }
                 // call functions to manipulate state matrix
                 addroundkey(state, w, 0, Nb);
                 for(int rnd=1;rnd<Nr;rnd++) {
@@ -303,6 +308,10 @@ class AES
                     for(int c=0;c<Nb;c++)
                         output[r+4*c] = state[r][c];
                 }
+                for(int c=0;c<4;c++) {
+                   delete[] state[c];
+                }
+                delete[] state;
                 return output;
             }
             
@@ -438,6 +447,7 @@ class AES
             }
     };
     
+    public:
     class AES128
     {
         // AES algorithm size for AES128
