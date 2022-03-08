@@ -248,8 +248,8 @@ class AES
                 uint32_t temp;
                 int i=0;
                 do {
-                    w[i] = ((uint32_t)key[4*i]<<24) | (key[4*i+1]<<16) | (key[4*i+2]<<8) |
-                           key[4*i+3];
+                    w[i] = ((uint32_t)key[4*i]<<24) | (key[4*i+1]<<16) |
+                           (key[4*i+2]<<8) | key[4*i+3];
                     i++;
                 } while(i<Nk);
                 i=Nk;
@@ -257,19 +257,19 @@ class AES
                 // rcon values. initialize twice so it doesn't override
                 uint32_t tmp_rcon[11];
                 for(int c=1;c<11;c++) {
-                    tmp_rcon[c] = (rcon[c] & 0xff)<<24;
+                    tmp_rcon[c] = (uint8_t)(rcon[c] & 0xff)<<24;
                 }
                 
                 while(i<Nb*(Nr+1)) {
-                temp = w[i-1];
-                if(i%Nk == 0) {
-                    temp = subword(rotword(temp)) ^ (uint32_t)tmp_rcon[i/Nk];
-                }
-                else if(Nk>6 && i%Nk == 4) {
-                    temp = subword(temp);
-                }
-                w[i] = temp ^ w[i-Nk];
-                i++;
+                    temp = w[i-1];
+                    if(i%Nk == 0) {
+                        temp = subword(rotword(temp)) ^ (uint32_t)tmp_rcon[i/Nk];
+                    }
+                    else if(Nk>6 && i%Nk == 4) {
+                        temp = subword(temp);
+                    }
+                    w[i] = temp ^ w[i-Nk];
+                    i++;
                 }
                 return w;
             }
@@ -283,7 +283,7 @@ class AES
                 for(int r=0;r<4;r++) {
                     state[r] = new uint8_t[Nb];
                 }
-                // TODO: fix segmentation fault
+                
                 // put 1-dimentional array values to a 2-dimentional matrix
                 for(int r=0;r<4;r++) {
                     for(int c=0;c<Nb;c++)
@@ -335,7 +335,8 @@ class AES
                 std::stringstream ss;
                 for (int c=0;c<4*Nb;c++)
                 {
-                    ss << std::setfill('0') << std::setw(2) << std::hex << output[c];
+                    ss << std::setfill('0') << std::setw(2) << std::hex
+                       << (uint16_t)output[c];
                 }
             	return ss.str();
             }
@@ -343,13 +344,19 @@ class AES
             uint8_t* invCipher(uint8_t* input, uint8_t* output, uint32_t* w,
                                uint8_t Nb, uint8_t Nk, uint8_t Nr)
             {
-                uint8_t state_arr[4][Nb];
-                uint8_t** state;
+                // declare state matrix as a 2d C++ pointer
+                uint8_t** state = nullptr;
+                state = new uint8_t*[4];
+                for(int r=0;r<4;r++) {
+                    state[r] = new uint8_t[Nb];
+                }
+                
+                // 1d input to 2d matrix
                 for(int r=0;r<4;r++) {
                     for(int c=0;c<Nb;c++)
-                        state_arr[r][c] = input[r+4*c];
+                        state[r][c] = input[r+4*c];
                 }
-                memcpy(state, state_arr, sizeof(uint8_t)<<3);
+                
                 addroundkey(state, w, Nr, Nb);
                 for(int rnd=0;rnd>0;rnd--) {
                     inv_shiftrows(state, Nb);
