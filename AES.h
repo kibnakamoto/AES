@@ -358,9 +358,10 @@ class AES
                 }
                 
                 addroundkey(state, w, Nr, Nb);
-                for(int rnd=0;rnd>0;rnd--) {
+                for(int rnd=14-1;rnd>0;rnd--) {
                     inv_shiftrows(state, Nb);
                     inv_subBytes(state, Nb);
+                    addroundkey(state, w, rnd, Nb);
                     inv_mixcolumns(state, Nb);
                 }
                 inv_shiftrows(state, Nb);
@@ -383,7 +384,7 @@ class AES
                 uint8_t input[4*Nb];
                 uint32_t w[Nb*(Nr+1)];
                 std::stringstream conv;
-                for(int c=0;c<user_in.length();c+=2) { /* bug here */
+                for(int c=0;c<user_in.length();c+=2) {
                     conv << std::hex << user_in.substr(c,2);
                     int32_t uint8;
                     conv >> uint8;
@@ -391,16 +392,13 @@ class AES
                     conv.str(std::string());
                     conv.clear();
                 }
-                for(int c=0;c<16;c++) { //////////////////////////////// TEST
-                    std::cout << (uint32_t)input[c] << " "; 
-                }std::cout << std::endl;
                 
                 // create key schedule and decrypt
-                keyExpansion(key, w, Nb, Nk, Nr);
-                invCipher(input, output, w, Nb, Nk, Nr);
-                std::string str;
+                keyExpansion(key, w, Nb, Nk, Nr); 
+                invCipher(input, output, w, Nb, Nk, Nr); // output wrong 
+                std::string str = "";
                 for(int c=0;c<4*Nb;c++) {
-                    str += output[c];
+                    str += output[c]; /* Check invCipher */
                 }
                 return str;
             }
@@ -419,7 +417,7 @@ class AES
                 std::string new_input[msg_blen/16];
                 int32_t k=-1;
                 std::string final_val = "";
-                std::cout << ss.str() << "\n\n";
+                
                 // seperate message into blocks of 16
                 for(int c=0;c<msg_blen;c+=16) {
                     k++;
@@ -441,20 +439,17 @@ class AES
                 int k=-1;
                 std::string final_val = "";
                 
+                // input length has to be a multiple of 16
+                if(user_in.length()%16 != 0) {
+                    std::cout << "length is not a multiple of 16\nERROR";
+                    exit(EXIT_FAILURE);
+                }
+                
                 // seperate message into blocks of 32 hex digits
                 for(int c=0;c<user_in.length();c+=32) {
                     k++;
                     new_input[k] = user_in.substr(c,32);
                 }
-                
-                /* test */std::cout << "test:\t";
-                for(unsigned short ch : new_input[0]) {
-                    std::cout << std::dec << ch << " ";
-                }
-                std::cout << std::endl << std::endl;
-                /* test */
-
-                
                 k=user_in.length()/32;
                 for(int c=0;c<k;c++) {
                     final_val += decrypt(new_input[c], key, Nb, Nk, Nr);
