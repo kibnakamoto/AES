@@ -383,7 +383,7 @@ class AES
                 uint8_t input[4*Nb];
                 uint32_t w[Nb*(Nr+1)];
                 std::stringstream conv;
-                for(int c=0;c<user_in.length();c+=2) {
+                for(int c=0;c<user_in.length();c+=2) { /* bug here */
                     conv << std::hex << user_in.substr(c,2);
                     int32_t uint8;
                     conv >> uint8;
@@ -391,6 +391,10 @@ class AES
                     conv.str(std::string());
                     conv.clear();
                 }
+                for(int c=0;c<16;c++) { //////////////////////////////// TEST
+                    std::cout << (uint32_t)input[c] << " "; 
+                }std::cout << std::endl;
+                
                 // create key schedule and decrypt
                 keyExpansion(key, w, Nb, Nk, Nr);
                 invCipher(input, output, w, Nb, Nk, Nr);
@@ -411,11 +415,11 @@ class AES
                     msg_blen-=16;
                 }
                 std::stringstream ss;
-                ss << std::setfill('0') << std::setw(msg_blen) << user_in;
+                ss << user_in << std::setfill('0') << std::setw(msg_blen) << "";
                 std::string new_input[msg_blen/16];
                 int32_t k=-1;
                 std::string final_val = "";
-                
+                std::cout << ss.str() << "\n\n";
                 // seperate message into blocks of 16
                 for(int c=0;c<msg_blen;c+=16) {
                     k++;
@@ -440,10 +444,17 @@ class AES
                 // seperate message into blocks of 32 hex digits
                 for(int c=0;c<user_in.length();c+=32) {
                     k++;
-                    if(k < user_in.length()/32) {
-                        new_input[k] = user_in.substr(c,32);
-                    }
+                    new_input[k] = user_in.substr(c,32);
                 }
+                
+                /* test */std::cout << "test:\t";
+                for(unsigned short ch : new_input[0]) {
+                    std::cout << std::dec << ch << " ";
+                }
+                std::cout << std::endl << std::endl;
+                /* test */
+
+                
                 k=user_in.length()/32;
                 for(int c=0;c<k;c++) {
                     final_val += decrypt(new_input[c], key, Nb, Nk, Nr);
