@@ -2,7 +2,7 @@
 *  Github: Kibnakamoto
 *   Repisotory: AES
 *  Start Date: March, 5, 2022
-*  Finalized: March N/A, 2022
+*  Finalized: March 11, 2022
 */
 
 
@@ -362,14 +362,6 @@ class AES
                 addroundkey(state, w, Nr, Nb);
                 for(int rnd=Nr-1;rnd>0;rnd--) {
                     inv_shiftrows(state, Nb);
-                    /* test */ // rnd=13 = correct state initialized correctly
-                    std::cout << "decryption:\t[" << std::dec << rnd << "]\t:\t";
-                    for(int r=0;r<4;r++) { // use C# code as test vector
-                        for(int c=0;c<Nb;c++) /////////// functions give constant
-                            std::cout << std::hex << (short)state[r][c];
-                    }std::cout << std::endl;
-                    /* test */
-
                     inv_subBytes(state, Nb);
                     addroundkey(state, w, rnd, Nb);
                     inv_mixcolumns(state, Nb);
