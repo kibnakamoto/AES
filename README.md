@@ -7,11 +7,13 @@ Project finish date: Feb 17, 2022
 
 Email: taha.ez.ca@gmail.com
 
-All AES Encryption/Decryption methods in c#.
+All AES Encryption/Decryption methods in C++ and C#.
 
-Works no matter the length of message, if message isn't a multiple of 16, then pads user input with zeros.
+Works no matter the length of message, if message isn't a multiple of 16, then pads user input with zeros in both implementations.
 
-this implementation uses salt.
+C# implementation uses salt in key generation.
+
+C++ implementation doesn't have key generation.
 
 GF(2) = XOR. xor in the Galois Field is adding.
 
