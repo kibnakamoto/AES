@@ -1,4 +1,4 @@
-# AES256 in C# and C++
+# All AES algorithms in C# and C++
 By Taha Canturk(Kibnakamoto)
 
 Project start date: Jan 7, 2022
